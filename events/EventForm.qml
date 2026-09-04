@@ -660,11 +660,12 @@ Item {
     Rectangle {
       anchors.fill: parent
       radius: Style.cornerRadius
+      // 选中高亮用该标签自己的颜色(普通=蓝 / 重要=橙),不用通用 accent
       color: chip.active
-        ? Util.alpha(chip.accent, 0.10)
+        ? Util.alpha(chip.dotColor, 0.12)
         : (chip.hovered ? Util.alpha(chip.foreground, 0.06) : "transparent")
       border.width: chip.active ? Style.spacing.hairline * 2 : 0
-      border.color: chip.active ? chip.accent : "transparent"
+      border.color: chip.active ? chip.dotColor : "transparent"
 
       Behavior on color { ColorAnimation { duration: 80 } }
     }
