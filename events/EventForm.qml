@@ -16,7 +16,6 @@ Item {
   property color accent: Color.accent
   property color dotRed: "#e0744e"
   property color dotGreen: "#7aa2f7"
-  property color statusBlue: "#7aa2f7"
   property string fontFamily: Style.font.family
 
   signal submit(var fields)
@@ -422,7 +421,7 @@ Item {
           labelText: "待办"
           glyphText: "\uDB82\uDE9E"     // md circle-slice-1(1% 进度)
           active: root._status === "todo"
-          accentColor: root.statusBlue
+          accentColor: root._flag === "important" ? root.dotRed : root.dotGreen
           foreground: root.foreground
           fontFamily: root.fontFamily
           onChosen: root._status = "todo"
@@ -433,7 +432,7 @@ Item {
           labelText: "进行中"
           glyphText: "\uDB84\uDF96"     // md circle-half-full
           active: root._status === "inprogress"
-          accentColor: root.statusBlue
+          accentColor: root._flag === "important" ? root.dotRed : root.dotGreen
           foreground: root.foreground
           fontFamily: root.fontFamily
           onChosen: root._status = "inprogress"
@@ -444,7 +443,7 @@ Item {
           labelText: "已完成"
           glyphText: "\uDB81\uDDE0"     // md check-circle(实心+钩)
           active: root._status === "done"
-          accentColor: root.statusBlue
+          accentColor: root._flag === "important" ? root.dotRed : root.dotGreen
           foreground: root.foreground
           fontFamily: root.fontFamily
           onChosen: root._status = "done"

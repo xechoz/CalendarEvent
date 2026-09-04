@@ -16,7 +16,6 @@ Item {
   property color accent: Color.accent
   property color dotRed: "#e0744e"
   property color dotGreen: "#7aa2f7"
-  property color statusBlue: "#7aa2f7"
   property string fontFamily: Style.font.family
 
   readonly property color dim: Qt.darker(foreground, 1.5)
@@ -248,7 +247,6 @@ Item {
             accent: root.accent
             dotRed: root.dotRed
             dotGreen: root.dotGreen
-            statusBlue: root.statusBlue
             fontFamily: root.fontFamily
             onCancel: root.closeForm()
             onSubmit: function(fields) { root.commitForm(fields) }
