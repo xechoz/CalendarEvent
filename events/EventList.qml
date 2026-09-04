@@ -13,7 +13,6 @@ Item {
   property color accent: Color.accent
   property color dotRed: "#e0744e"
   property color dotGreen: "#7aa2f7"
-  property color statusBlue: "#7aa2f7"
   property string fontFamily: Style.font.family
   property real rowHeight: Style.space(38)
   property real rowGap: Style.space(4)
@@ -88,6 +87,9 @@ Item {
     readonly property bool timed: !!ev && !!ev.time
     // 已完成:标题删除线,整行置灰(见下方各绑定)
     readonly property bool done: !!ev && ev.status === "done"
+    // 重要/普通 不再用单独小圆点表达,直接体现在状态圆点的颜色上
+    readonly property color importanceColor: ev && ev.flag === "important"
+      ? root.dotRed : root.dotGreen
 
     MouseArea {
       id: mouse
@@ -97,7 +99,7 @@ Item {
       onClicked: root.editRequested(row.occurrence)
     }
 
-    // 状态圆点(点击循环 待办→进行中→已完成→待办;颜色蓝)
+    // 状态圆点(形状=进度,颜色=重要/普通;点击循环 待办→进行中→已完成→待办)
     Item {
       id: statusHost
       anchors.left: parent.left
@@ -109,7 +111,7 @@ Item {
       Text {
         anchors.centerIn: parent
         text: root.statusGlyph(row.ev ? row.ev.status : "todo")
-        color: root.statusBlue
+        color: row.importanceColor
         font.family: root.fontFamily
         font.pixelSize: Style.font.body
       }
@@ -159,24 +161,9 @@ Item {
       }
     }
 
-    // 标签色点:重要=红 / 普通=绿
-    Rectangle {
-      id: flagDot
-      anchors.left: chip.right
-      anchors.leftMargin: Style.space(8)
-      anchors.verticalCenter: parent.verticalCenter
-      width: Style.space(3)
-      height: Style.space(3)
-      // 圆点永远是圆:不跟主题 cornerRadius(为 0 时会变方形)
-      radius: height / 2
-      color: row.done
-        ? Util.alpha(root.foreground, 0.32)
-        : (row.ev && row.ev.flag === "important" ? root.dotRed : root.dotGreen)
-    }
-
     Text {
       id: titleText
-      anchors.left: flagDot.right
+      anchors.left: chip.right
       anchors.leftMargin: Style.space(8)
       anchors.right: mouse.containsMouse ? deleteBtn.left : parent.right
       anchors.rightMargin: mouse.containsMouse ? Style.space(4) : Style.space(8)
@@ -198,15 +185,6 @@ Item {
       anchors.verticalCenter: parent.verticalCenter
       spacing: Style.space(6)
       clip: true
-
-      Text {
-        visible: row.ev && row.ev.flag === "important"
-        text: "重要"
-        color: row.done ? Util.alpha(root.foreground, 0.3) : root.dotRed
-        font.family: root.fontFamily
-        font.pixelSize: Style.font.caption
-        font.bold: true
-      }
 
       Text {
         visible: row.ev && row.ev.repeat && row.ev.repeat !== "none"

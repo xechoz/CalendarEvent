@@ -207,7 +207,6 @@ Item {
       accent: root.accent
       dotRed: root.dotRed
       dotGreen: root.dotGreen
-      statusBlue: root.statusBlue
       fontFamily: root.fontFamily
       emptyHint: "这天还没有安排 · 点右上角 + 添加"
       height: root.occurrences.length > 0 ? contentHeight : Style.space(24)
