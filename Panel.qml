@@ -72,33 +72,28 @@ Panel {
   }
 
   // ---- 当月格事件索引(dateKey → 该日圆点数组,仅当月格窗口;圆点用)。
-  // 每个元素是布尔:true=重要(红点)/ false=普通(绿点);每日最多 3 个,
-  // 重要事件排在前面,保证红点不会被普通事件挤掉。
+  // 每个元素是布尔:true=重要(橙点)/ false=普通(蓝点);每日最多 3 个,
+  // 重要事件排在前面,保证橙点不会被普通事件挤掉。
   property var dayDots: ({})
 
-  // ---- 圆点配色:红=Color.urgent(主题红),绿取自当前主题 colors.toml;
-  // 主题换色时 FileView 会重读;缺省绿退化为东京夜绿。
-  property var themeRedToken: ""
-  property var themeGreenToken: ""
-  readonly property color dotRed: root.hexColor(root.themeRedToken, Color.urgent)
-  readonly property color dotGreen: root.hexColor(root.themeGreenToken, "#9ece6a")
+  // ---- 圆点配色:重要=固定 #ff5a36;普通取当前主题 colors.toml 的 blue
+  // (窗口/弹窗边框的 Omarchy 蓝,主题换色时 FileView 会重读;缺省 #7aa2f7)。
+  property var themeBlueToken: ""
+  readonly property color dotRed: "#ff5a36"
+  readonly property color dotGreen: root.hexColor(root.themeBlueToken, "#7aa2f7")
 
   function hexColor(token, fallback) {
     return typeof token === "string" && /^#[0-9A-Fa-f]{6}$/.test(token) ? token : fallback
   }
 
   function loadThemeColors(text) {
-    var red = ""
-    var green = ""
+    var blue = ""
     var lines = String(text || "").split("\n")
     for (var i = 0; i < lines.length; i++) {
-      var m = /^\s*(red|green)\s*=\s*["']?(#[0-9A-Fa-f]{6})/.exec(lines[i])
-      if (!m) continue
-      if (m[1] === "red") red = m[2]
-      else green = m[2]
+      var m = /^\s*blue\s*=\s*["']?(#[0-9A-Fa-f]{6})/.exec(lines[i])
+      if (m) blue = m[1]
     }
-    root.themeRedToken = red
-    root.themeGreenToken = green
+    root.themeBlueToken = blue
   }
 
   readonly property var weeks: Model.monthGrid(viewYear, viewMonth, weekStart, todayKey)
@@ -283,7 +278,7 @@ Panel {
     store: store
   }
 
-  // 当前主题 colors.toml 的红/绿(圆点配色用);换主题后自动重读。
+  // 当前主题 colors.toml 的 blue(普通事件圆点配色用);换主题后自动重读。
   // 文件由 omarchy 在切换主题时替换,FileView 换文件也会触发 reload。
   FileView {
     id: themeColorsView

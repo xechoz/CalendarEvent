@@ -14,8 +14,8 @@ Item {
   property var editing: null
   property color foreground: Color.foreground
   property color accent: Color.accent
-  property color dotRed: Color.urgent
-  property color dotGreen: "#9ece6a"
+  property color dotRed: "#ff5a36"
+  property color dotGreen: "#7aa2f7"
   property color statusBlue: "#7aa2f7"
   property string fontFamily: Style.font.family
 
@@ -357,7 +357,7 @@ Item {
       }
     }
 
-    // ---- 标签(普通=绿点 / 重要=红点,决定日期圆点颜色) ----
+    // ---- 标签(普通=蓝点 / 重要=橙点,决定日期圆点颜色) ----
     Row {
       width: parent.width
       spacing: Style.space(6)

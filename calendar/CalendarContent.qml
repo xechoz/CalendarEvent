@@ -11,7 +11,7 @@ import "../Model.js" as Model
 // 新增语义(相对内置版):
 //   - 格子可点选:点击任一天会 emit dayClicked;编排层负责翻月/选中/联动事件区
 //   - 有事件的日子在日期数字下方渲染圆点(dayDots 由编排层注入):每天最多
-//     3 个,重要事件红点、普通事件绿点(主题色 dotRed/dotGreen 注入)
+//     3 个,重要事件橙点、普通事件蓝点(主题色 dotRed/dotGreen 注入)
 Item {
   id: root
 
@@ -23,11 +23,11 @@ Item {
   property int birthYear: 0
   property int lifeExpectancy: 0
   property bool editingLife: false
-  // dateKey → 该日圆点布尔数组(仅当月格窗口内有效;true=重要/红,
-  // false=普通/绿;长度最多 3,由编排层排序截断)
+  // dateKey → 该日圆点布尔数组(仅当月格窗口内有效;true=重要/橙,
+  // false=普通/蓝;长度最多 3,由编排层排序截断)
   property var dayDots: ({})
-  property color dotRed: Color.urgent
-  property color dotGreen: "#9ece6a"
+  property color dotRed: "#ff5a36"
+  property color dotGreen: "#7aa2f7"
 
   property color foreground: Color.foreground
   property string fontFamily: Style.font.family
@@ -569,8 +569,8 @@ Item {
     property real cellHeight: 0
     // 该日圆点布尔数组(true=重要,false=普通);颜色见 dotRed/dotGreen
     property var dots: []
-    property color dotRed: Color.urgent
-    property color dotGreen: "#9ece6a"
+    property color dotRed: "#ff5a36"
+    property color dotGreen: "#7aa2f7"
 
     signal clicked(string key, bool inMonth)
 

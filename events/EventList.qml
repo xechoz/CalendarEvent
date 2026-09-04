@@ -11,8 +11,8 @@ Item {
   property var occurrences: []
   property color foreground: Color.foreground
   property color accent: Color.accent
-  property color dotRed: Color.urgent
-  property color dotGreen: "#9ece6a"
+  property color dotRed: "#ff5a36"
+  property color dotGreen: "#7aa2f7"
   property color statusBlue: "#7aa2f7"
   property string fontFamily: Style.font.family
   property real rowHeight: Style.space(38)
