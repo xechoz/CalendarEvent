@@ -489,7 +489,7 @@ Item {
 
             Text {
               anchors.verticalCenter: parent.verticalCenter
-              text: root._time === "" ? "全天 09:00 提醒" : "到点提醒"
+              text: root._time === "" ? "全天 09:00 提醒" : "提前 10 分钟提醒"
               color: root.dim
               font.family: root.fontFamily
               font.pixelSize: Style.font.caption
