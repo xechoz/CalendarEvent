@@ -550,22 +550,23 @@ Item {
         anchors.right: parent.right
         spacing: Style.spacing.xs
 
+        // 取消:次要操作,低调(无边框幽灵态)
         Button {
           id: cancelBtn
           text: "取消"
-          foreground: root.foreground
+          foreground: root.dim
           fontFamily: root.fontFamily
           fontSize: Style.font.bodySmall
-          bordered: true
           onClicked: root.cancel()
         }
 
+        // 添加/保存:主操作,accent 实底突出
         Button {
           id: addBtn
           text: root.editing ? "保存修改" : "添加"
           iconText: "\uDB81\uDC15"   // md-plus
-          accent: root.accent
-          foreground: root.foreground
+          background: root.accent
+          foreground: Color.background
           fontFamily: root.fontFamily
           fontSize: Style.font.bodySmall
           onClicked: root.commit()
