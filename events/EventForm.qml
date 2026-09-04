@@ -125,8 +125,10 @@ Item {
     })
   }
 
+  // 双栏行的栏宽:成对 Row 的 spacing 是 8(不是 body 的 6),
+  // 少算会把右栏挤宽 2px、被面板滚动区裁掉右边,见各双栏 Row。
   function halfWidth() {
-    return Math.floor((body.width - body.spacing) / 2)
+    return Math.floor((body.width - Style.space(8)) / 2)
   }
 
   // 自报测量高度:宿主(聚合层/外层 Column)靠 implicitHeight 决定表单是否占位,
