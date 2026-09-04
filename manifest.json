@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "xechoz.clock",
+  "name": "Xechoz Calendar",
+  "version": "1.0.0",
+  "author": "xechoz",
+  "description": "带事件与提醒的月历(全天/多日/定时/重复事件、待办-进行中-完成状态、桌面提醒)。Date/time bar widget with a calendar popup, events and reminders.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Xechoz Calendar",
+    "description": "带事件/待办与提醒的时钟日历(点开面板管理事件)",
+    "category": "Time",
+    "allowMultiple": false,
+    "defaultSection": "center"
+  }
+}
