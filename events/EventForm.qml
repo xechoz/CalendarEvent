@@ -14,7 +14,7 @@ Item {
   property var editing: null
   property color foreground: Color.foreground
   property color accent: Color.accent
-  property color dotRed: "#ff5a36"
+  property color dotRed: "#e0744e"
   property color dotGreen: "#7aa2f7"
   property color statusBlue: "#7aa2f7"
   property string fontFamily: Style.font.family
@@ -420,7 +420,7 @@ Item {
         StatusChip {
           value: "todo"
           labelText: "待办"
-          glyphText: "\uDB81\uDF66"     // md circle-outline
+          glyphText: "\uDB82\uDE9E"     // md circle-slice-1(1% 进度)
           active: root._status === "todo"
           accentColor: root.statusBlue
           foreground: root.foreground
@@ -442,7 +442,7 @@ Item {
         StatusChip {
           value: "done"
           labelText: "已完成"
-          glyphText: "\uDB81\uDF65"     // md circle(实心)
+          glyphText: "\uDB81\uDDE0"     // md check-circle(实心+钩)
           active: root._status === "done"
           accentColor: root.statusBlue
           foreground: root.foreground
@@ -686,7 +686,8 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         width: Style.space(3)
         height: Style.space(3)
-        radius: Style.cornerRadius > 0 ? height / 2 : 0
+        // 圆点永远是圆:不跟主题 cornerRadius(为 0 时会变方形)
+        radius: height / 2
         color: chip.dotColor
       }
 

@@ -11,7 +11,7 @@ Item {
   property var occurrences: []
   property color foreground: Color.foreground
   property color accent: Color.accent
-  property color dotRed: "#ff5a36"
+  property color dotRed: "#e0744e"
   property color dotGreen: "#7aa2f7"
   property color statusBlue: "#7aa2f7"
   property string fontFamily: Style.font.family
@@ -43,9 +43,9 @@ Item {
   }
 
   function statusGlyph(status) {
-    if (status === "done") return "\uDB81\uDF65"        // 实心圆
+    if (status === "done") return "\uDB81\uDDE0"        // 实心圆+钩(md check-circle)
     if (status === "inprogress") return "\uDB84\uDF96"  // 半圆
-    return "\uDB81\uDF66"                               // 空心圆
+    return "\uDB82\uDE9E"                               // 1% 进度弧(md circle-slice-1)
   }
 
   function statusLabel(status) {
@@ -86,6 +86,8 @@ Item {
 
     readonly property var ev: occurrence && occurrence.event ? occurrence.event : null
     readonly property bool timed: !!ev && !!ev.time
+    // 已完成:标题删除线,整行置灰(见下方各绑定)
+    readonly property bool done: !!ev && ev.status === "done"
 
     MouseArea {
       id: mouse
@@ -140,13 +142,17 @@ Item {
       width: chipText.implicitWidth + Style.space(10)
       height: Style.space(19)
       radius: Style.cornerRadius > 0 ? Math.round(height / 2) : 0
-      color: row.timed ? Util.alpha(root.accent, 0.16) : Util.alpha(root.foreground, 0.07)
+      color: row.done
+        ? Util.alpha(root.foreground, 0.045)
+        : (row.timed ? Util.alpha(root.accent, 0.16) : Util.alpha(root.foreground, 0.07))
 
       Text {
         id: chipText
         anchors.centerIn: parent
         text: row.timed ? row.ev.time : "全天"
-        color: row.timed ? root.accent : root.dim
+        color: row.done
+          ? Util.alpha(root.foreground, 0.3)
+          : (row.timed ? root.accent : root.dim)
         font.family: root.fontFamily
         font.pixelSize: Style.font.caption
         font.bold: row.timed
@@ -161,8 +167,11 @@ Item {
       anchors.verticalCenter: parent.verticalCenter
       width: Style.space(3)
       height: Style.space(3)
-      radius: Style.cornerRadius > 0 ? height / 2 : 0
-      color: row.ev && row.ev.flag === "important" ? root.dotRed : root.dotGreen
+      // 圆点永远是圆:不跟主题 cornerRadius(为 0 时会变方形)
+      radius: height / 2
+      color: row.done
+        ? Util.alpha(root.foreground, 0.32)
+        : (row.ev && row.ev.flag === "important" ? root.dotRed : root.dotGreen)
     }
 
     Text {
@@ -174,9 +183,10 @@ Item {
       anchors.verticalCenter: parent.verticalCenter
       text: row.ev ? row.ev.title : ""
       elide: Text.ElideRight
-      color: root.foreground
+      color: row.done ? Util.alpha(root.foreground, 0.38) : root.foreground
       font.family: root.fontFamily
       font.pixelSize: Style.font.body
+      font.strikeout: row.done
     }
 
     Row {
@@ -192,7 +202,7 @@ Item {
       Text {
         visible: row.ev && row.ev.flag === "important"
         text: "重要"
-        color: root.dotRed
+        color: row.done ? Util.alpha(root.foreground, 0.3) : root.dotRed
         font.family: root.fontFamily
         font.pixelSize: Style.font.caption
         font.bold: true
@@ -201,7 +211,7 @@ Item {
       Text {
         visible: row.ev && row.ev.repeat && row.ev.repeat !== "none"
         text: root.repeatLabel(row.ev.repeat)
-        color: root.dim
+        color: row.done ? Util.alpha(root.foreground, 0.3) : root.dim
         font.family: root.fontFamily
         font.pixelSize: Style.font.caption
         font.italic: true

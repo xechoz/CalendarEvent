@@ -76,10 +76,10 @@ Panel {
   // 重要事件排在前面,保证橙点不会被普通事件挤掉。
   property var dayDots: ({})
 
-  // ---- 圆点配色:重要=固定 #ff5a36;普通取当前主题 colors.toml 的 blue
+  // ---- 圆点配色:重要=固定 #e0744e(暖橘);普通取当前主题 colors.toml 的 blue
   // (窗口/弹窗边框的 Omarchy 蓝,主题换色时 FileView 会重读;缺省 #7aa2f7)。
   property var themeBlueToken: ""
-  readonly property color dotRed: "#ff5a36"
+  readonly property color dotRed: "#e0744e"
   readonly property color dotGreen: root.hexColor(root.themeBlueToken, "#7aa2f7")
 
   function hexColor(token, fallback) {

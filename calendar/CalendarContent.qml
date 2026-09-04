@@ -26,7 +26,7 @@ Item {
   // dateKey → 该日圆点布尔数组(仅当月格窗口内有效;true=重要/橙,
   // false=普通/蓝;长度最多 3,由编排层排序截断)
   property var dayDots: ({})
-  property color dotRed: "#ff5a36"
+  property color dotRed: "#e0744e"
   property color dotGreen: "#7aa2f7"
 
   property color foreground: Color.foreground
@@ -569,7 +569,7 @@ Item {
     property real cellHeight: 0
     // 该日圆点布尔数组(true=重要,false=普通);颜色见 dotRed/dotGreen
     property var dots: []
-    property color dotRed: "#ff5a36"
+    property color dotRed: "#e0744e"
     property color dotGreen: "#7aa2f7"
 
     signal clicked(string key, bool inMonth)
@@ -636,7 +636,8 @@ Item {
           required property bool modelData
           width: Style.space(3)
           height: Style.space(3)
-          radius: Style.cornerRadius > 0 ? height / 2 : 0
+          // 圆点永远是圆:不跟主题 cornerRadius(为 0 时会变方形)
+          radius: height / 2
           color: modelData ? cell.dotRed : cell.dotGreen
           opacity: cellData.inMonth ? 1 : 0.45
         }
