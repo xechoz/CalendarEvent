@@ -207,6 +207,31 @@ function isException(event, key) {
   return event.exceptions && event.exceptions.indexOf(String(key)) !== -1
 }
 
+// 表单预览用:给一组“重复意图”,返回下次出现与计数。
+// opts: { date, repeat, repeatUntil, exceptions, today }
+// 返回 { next: [dateKey…,最多3], untilTotal: null|int(有截止时 = 全量次数),
+//         yearCount: null|int(无截止时 = 未来一年出现次数) }
+function repeatForecast(opts) {
+  var repeat = normalizeRepeat(opts && opts.repeat)
+  if (repeat === "none") return { next: [], untilTotal: null, yearCount: null }
+  var date = normalizeDate(opts && opts.date)
+  if (!date) return { next: [], untilTotal: null, yearCount: null }
+  var until = normalizeDate(opts && opts.repeatUntil)
+  var today = normalizeDate(opts && opts.today) || todayKey(new Date())
+  if (cmpKeys(today, date) < 0) today = date
+  var ex = Array.isArray(opts && opts.exceptions) ? opts.exceptions : []
+  var base = { date: date, repeat: repeat, repeatUntil: until, exceptions: ex }
+  // 找“下次”需要能覆盖最稀的 yearly(如 2/29 会隔 4 年),给足 4 年窗口
+  var horizon = addDays(today, 1461)
+  var next = occurrenceStartKeys(base, today, until && cmpKeys(until, horizon) < 0 ? until : horizon, 3)
+  if (until) {
+    var total = occurrenceStartKeys(base, date, until, 5000).length
+    return { next: next, untilTotal: total, yearCount: null }
+  }
+  var yearCount = occurrenceStartKeys(base, today, addDays(today, 364), 5000).length
+  return { next: next, untilTotal: null, yearCount: yearCount }
+}
+
 // 单条事件的开始日键序列,取与 [from,to] 相交的部分。
 // 规则:daily 每天 / weekly 同星期几 / monthly 每月同“日”(该月无此日则跳过)
 //      / yearly 每年同月日(闰 2/29 非闰年跳过);repeatUntil 截断;exceptions 排除。
@@ -374,6 +399,7 @@ if (typeof module !== "undefined") {
     buildEvent: buildEvent,
     eventCoversKey: eventCoversKey,
     isException: isException,
+    repeatForecast: repeatForecast,
     occurrenceStartKeys: occurrenceStartKeys,
     occurrenceForEvent: occurrenceForEvent,
     indexByDate: indexByDate,

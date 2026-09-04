@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls as QC
 import qs.Commons
 import qs.Ui
 import "EventsModel.js" as EM
@@ -16,6 +17,7 @@ Item {
   property color accent: Color.accent
   property color dotRed: "#e0744e"
   property color dotGreen: "#7aa2f7"
+  property int weekStart: 1
   property string fontFamily: Style.font.family
 
   signal submit(var fields)
@@ -36,6 +38,16 @@ Item {
   property bool _hasUntil: false
   property bool _remind: true
   property string fieldError: ""
+  property string _errField: ""     // "title" | "time" | "" —— 错误归属字段
+  // 重复事件「仅改这一天」:进入编辑时由聚合层带上本次出现的日期
+  property string editingOccurrenceKey: ""
+  property bool _detach: false
+  readonly property bool detachAllowed: !!root.editing
+    && root.editing.repeat && root.editing.repeat !== "none"
+    && root.editingOccurrenceKey !== ""
+    && root.editingOccurrenceKey !== String(root.editing.date || "")
+  // 在多日基础上改选重复时,被自动忽略的原结束日期(提示用)
+  property string _endIgnored: ""
 
   readonly property bool timeBad: root._time !== "" && EM.normalizeTime(root._time) === null
 
@@ -46,6 +58,17 @@ Item {
     { value: "monthly", label: "每月" },
     { value: "yearly", label: "每年" }
   ]
+
+  function toggleDetach() {
+    if (!root.detachAllowed || !root.editing) return
+    root._detach = !root._detach
+    if (root._detach) {
+      // 本次编辑针对所选出现日;原系列将在保存时跳过这天
+      root._startKey = root.editingOccurrenceKey
+      root._endKey = ""
+      root._endIgnored = ""
+    }
+  }
 
   function beginAdd(dateKey) {
     root.editing = null
@@ -59,12 +82,14 @@ Item {
     root._repeatUntil = ""
     root._hasUntil = false
     root._remind = true
+    root._endIgnored = ""
     root.fieldError = ""
   }
 
   function beginEdit(event) {
     if (!event) return
     root.editing = event
+    root._detach = false
     root._startKey = event.date
     root._endKey = event.endDate || ""
     root._title = event.title
@@ -75,7 +100,28 @@ Item {
     root._repeatUntil = event.repeatUntil || ""
     root._hasUntil = !!event.repeatUntil
     root._remind = event.remind !== false
+    root._endIgnored = ""
     root.fieldError = ""
+  }
+
+  function glyphFor(status) {
+    if (status === "done") return "\uDB81\uDDE0"      // 实心圆+钩
+    if (status === "inprogress") return "\uDB84\uDF96" // 半圆
+    return "\uDB82\uDE9E"                             // 1% 进度弧
+  }
+
+  function toggleRemind() { root._remind = !root._remind }
+
+  function toggleUntil() {
+    root._hasUntil = !root._hasUntil
+    if (root._hasUntil && !root._repeatUntil)
+      root._repeatUntil = EM.addDays(root._startKey, 30)
+  }
+
+  // 状态选择统一入口:切到“已完成”时自动关提醒
+  function chooseStatus(v) {
+    if (v === "done" && root._status !== "done" && root._remind) root._remind = false
+    root._status = v
   }
 
   function focusTitle() {
@@ -89,14 +135,17 @@ Item {
     var title = EM.normalizeTitle(root._title)
     if (title === "") {
       root.fieldError = "标题不能为空"
+      root._errField = "title"
       titleField.forceActiveFocus()
       return
     }
     if (root.timeBad) {
       root.fieldError = "时间格式应为 HH:MM(如 14:30)"
+      root._errField = "time"
       timeField.forceActiveFocus()
       return
     }
+    root._errField = ""
     var startKey = EM.normalizeDate(root._startKey) || EM.todayKey(new Date())
     var endKey = null
     if (root._endKey !== "" && root._endKey !== root._startKey)
@@ -107,7 +156,7 @@ Item {
     var untilKey = null
     if (repeat !== "none" && root._hasUntil)
       untilKey = EM.normalizeDate(root._repeatUntil)
-    root.submit({
+    var payload = {
       id: root.editing ? String(root.editing.id) : "",
       title: title,
       flag: root._flag,
@@ -118,13 +167,68 @@ Item {
       repeat: repeat,
       repeatUntil: untilKey,
       remind: root._remind
-    })
+    }
+    if (root._detach && root.editing)
+      payload.detachFrom = String(root.editing.id)
+    root.submit(payload)
   }
 
   // 双栏行的栏宽:成对 Row 的 spacing 是 8(不是 body 的 6),
   // 少算会把右栏挤宽 2px、被面板滚动区裁掉右边,见各双栏 Row。
   function halfWidth() {
     return Math.floor((body.width - Style.space(8)) / 2)
+  }
+
+  // ---- 重复预览文案(所见即所得:把展开规则翻成人话) ----
+  function shortKey(key) {
+    var p = EM.parseKey(key)
+    if (!p) return key
+    return (p.month + 1) + "/" + p.day
+  }
+
+  function repeatSummary() {
+    if (root._repeat === "none") return ""
+    var p = EM.parseKey(root._startKey)
+    if (!p) return ""
+    var d = new Date(p.year, p.month, p.day)
+    var weekdays = ["日", "一", "二", "三", "四", "五", "六"]
+    var base = ""
+    if (root._repeat === "daily") base = "每天"
+    else if (root._repeat === "weekly") base = "每周" + weekdays[d.getDay()]
+    else if (root._repeat === "monthly") base = "每月 " + p.day + " 日(该月没有这天则跳过)"
+    else if (root._repeat === "yearly") base = "每年 " + (p.month + 1) + "/" + p.day
+      + (p.month === 1 && p.day === 29 ? "(闰年才有)" : "")
+    else base = "不重复"
+    var f = EM.repeatForecast({
+      date: root._startKey,
+      repeat: root._repeat,
+      repeatUntil: root._hasUntil ? root._repeatUntil : "",
+      today: EM.todayKey(new Date())
+    })
+    var parts = [base]
+    if (f.next.length === 0) {
+      parts.push(root._hasUntil ? "已到截止日,不再出现" : "暂无后续出现")
+    } else {
+      parts.push("下次 " + f.next.map(root.shortKey).join("、"))
+    }
+    if (f.untilTotal !== null) parts.push("共 " + f.untilTotal + " 次")
+    else if (f.yearCount !== null
+        && root._repeat !== "daily" && root._repeat !== "yearly" && f.yearCount > 0)
+      parts.push("约 " + f.yearCount + " 次/年")
+    return parts.join(" · ")
+  }
+
+  // 提醒时刻说明:带时间 → 提前 10 分钟(实时计算);全天 → 09:00
+  function remindText() {
+    if (root._time === "") return "全天 09:00 提醒"
+    var t = EM.normalizeTime(root._time)
+    if (!t) return "填好时间后这里会显示提醒时刻"
+    var min = parseInt(t.slice(0, 2), 10) * 60 + parseInt(t.slice(3, 5), 10) - 10
+    if (min < 0) min = 0
+    var hh = Math.floor(min / 60)
+    var mm = min % 60
+    return "提前 10 分钟 · 将于 " + (hh < 10 ? "0" : "") + hh + ":"
+      + (mm < 10 ? "0" : "") + mm + " 提醒"
   }
 
   // 自报测量高度:宿主(聚合层/外层 Column)靠 implicitHeight 决定表单是否占位,
@@ -136,6 +240,53 @@ Item {
     width: parent.width
     spacing: Style.space(6)
     topPadding: Style.space(2)
+
+    // ---- 编辑重复出现时的「仅改这一天」切换 ----
+    Column {
+      width: parent.width
+      visible: root.editing && root.editing.repeat && root.editing.repeat !== "none"
+      spacing: Style.space(4)
+
+      Row {
+        width: parent.width
+        spacing: Style.space(8)
+
+        Text {
+          anchors.verticalCenter: parent.verticalCenter
+          text: "本次编辑"
+          color: root.dim
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.caption
+          font.bold: true
+        }
+
+        Button {
+          id: detachBtn
+          text: root._detach ? "整条同步改" : "仅改这一天"
+          foreground: root._detach ? Color.background : root.foreground
+          background: root._detach ? root.accent : "transparent"
+          accent: root.accent
+          fontFamily: root.fontFamily
+          fontSize: Style.font.bodySmall
+          enabled: root.editingOccurrenceKey !== String(root.editing.date || "")
+          tooltipText: root.editingOccurrenceKey !== String(root.editing.date || "")
+            ? (root._detach ? "恢复为修改整条重复事件" : "把这次出现复制成单日事件再改,原系列跳过这一天")
+            : "首次出现日不能单独改,请整条修改"
+          onClicked: root.toggleDetach()
+        }
+      }
+
+      Text {
+        visible: root._detach
+        width: parent.width
+        wrapMode: Text.Wrap
+        text: "将把本次出现(" + root.shortKey(root.editingOccurrenceKey)
+          + ")存为单日事件,原重复系列会跳过这一天;状态/标签/时间等以当前填写为准。"
+        color: Util.alpha(root.foreground, 0.55)
+        font.family: root.fontFamily
+        font.pixelSize: Style.font.caption
+      }
+    }
 
     // ---- 标题 ----
     Column {
@@ -162,10 +313,91 @@ Item {
         verticalPadding: Style.space(5)
         onTextChanged: {
           root._title = text
-          if (root.fieldError !== "") root.fieldError = ""
+          if (root.fieldError !== "") { root.fieldError = ""; root._errField = "" }
         }
         onAccepted: root.commit()
         Keys.onEscapePressed: root.cancel()
+      }
+
+      // 校验错误红框(就近反馈)
+      Rectangle {
+        visible: root._errField === "title" && root.fieldError !== ""
+        anchors.fill: titleField
+        radius: Style.cornerRadius
+        color: "transparent"
+        border.width: Style.spacing.hairline * 2
+        border.color: Color.urgent
+      }
+
+      Text {
+        visible: root._errField === "title" && root.fieldError !== ""
+        width: parent.width
+        text: root.fieldError
+        color: Qt.darker(Color.urgent, 1.2)
+        font.family: root.fontFamily
+        font.pixelSize: Style.font.caption
+        topPadding: Style.space(2)
+      }
+    }
+
+    // ---- 成品预览(所见即所得:随字段实时更新) ----
+    Rectangle {
+      width: parent.width
+      height: Style.space(30)
+      radius: Style.cornerRadius
+      color: Util.alpha(root.foreground, 0.05)
+
+      Row {
+        anchors.left: parent.left
+        anchors.leftMargin: Style.space(8)
+        anchors.right: parent.right
+        anchors.rightMargin: Style.space(8)
+        anchors.verticalCenter: parent.verticalCenter
+        spacing: Style.space(8)
+
+        Text {
+          anchors.verticalCenter: parent.verticalCenter
+          text: root.glyphFor(root._status)
+          color: root._flag === "important" ? root.dotRed : root.dotGreen
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.body
+        }
+
+        Rectangle {
+          anchors.verticalCenter: parent.verticalCenter
+          width: chipPreviewText.implicitWidth + Style.space(10)
+          height: Style.space(18)
+          radius: Math.round(height / 2)
+          color: root._time === "" && root._status !== "done"
+            ? Util.alpha(root.foreground, 0.07)
+            : Util.alpha(root.accent, 0.16)
+
+          Text {
+            id: chipPreviewText
+            anchors.centerIn: parent
+            text: root._time !== "" && EM.normalizeTime(root._time)
+              ? EM.normalizeTime(root._time)
+              : (root._time !== "" ? root._time : "全天")
+            color: root._time === "" && root._status !== "done"
+              ? root.dim
+              : (root._status === "done" ? Util.alpha(root.foreground, 0.3) : root.accent)
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.caption
+            font.bold: root._time !== ""
+          }
+        }
+
+        Text {
+          anchors.verticalCenter: parent.verticalCenter
+          text: root._title !== "" ? root._title : "预览标题(输入标题后显示)"
+          elide: Text.ElideRight
+          color: root._title === ""
+            ? Util.alpha(root.foreground, 0.3)
+            : (root._status === "done" ? Util.alpha(root.foreground, 0.38) : root.foreground)
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.body
+          font.strikeout: root._status === "done" && root._title !== ""
+        }
       }
     }
 
@@ -179,9 +411,12 @@ Item {
         labelText: "开始"
         key: root._startKey
         width: root.halfWidth()
+        showToday: true
+        weekStart: root.weekStart
         foreground: root.foreground
         accent: root.accent
         fontFamily: root.fontFamily
+        onEscapeKey: root.cancel()
         onStepped: {
           root._startKey = startStepper.key
           if (root._endKey !== "" && EM.cmpKeys(root._endKey, startStepper.key) < 0)
@@ -196,11 +431,14 @@ Item {
         minKey: root._startKey
         locked: root.repeatLocked
         width: root.halfWidth()
+        weekStart: root.weekStart
         foreground: root.foreground
         accent: root.accent
         fontFamily: root.fontFamily
+        onEscapeKey: root.cancel()
         onStepped: {
           root._endKey = endStepper.key === root._startKey ? "" : endStepper.key
+          root._endIgnored = ""
         }
       }
     }
@@ -221,22 +459,49 @@ Item {
           font.bold: true
         }
 
-        TextField {
-          id: timeField
+        Row {
+          id: timeRow
           width: parent.width
-          foreground: root.foreground
-          accent: root.accent
-          font.family: root.fontFamily
-          font.pixelSize: Style.font.body
-          placeholderText: "HH:MM"
-          text: root._time
-          verticalPadding: Style.space(5)
-          onTextChanged: {
-            root._time = text
-            if (root.fieldError !== "") root.fieldError = ""
+          spacing: Style.space(4)
+
+          TextField {
+            id: timeField
+            width: clearTimeBtn.visible
+              ? parent.width - clearTimeBtn.width - parent.spacing : parent.width
+            foreground: root.foreground
+            accent: root.accent
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.body
+            placeholderText: "HH:MM"
+            text: root._time
+            verticalPadding: Style.space(5)
+            onTextChanged: {
+              root._time = text
+              if (root.fieldError !== "") { root.fieldError = ""; root._errField = "" }
+            }
+            onAccepted: root.commit()
+            Keys.onEscapePressed: root.cancel()
           }
-          onAccepted: root.commit()
-          Keys.onEscapePressed: root.cancel()
+
+          PanelActionButton {
+            id: clearTimeBtn
+            anchors.verticalCenter: parent.verticalCenter
+            visible: root._time !== ""
+            iconText: "\uDB80\uDD56"      // md-close
+            tooltipText: "清空时间(变为全天)"
+            foreground: root.foreground
+            fontFamily: root.fontFamily
+            onClicked: root._time = ""
+          }
+        }
+
+        Rectangle {
+          visible: root._errField === "time" && root.fieldError !== ""
+          anchors.fill: timeRow
+          radius: Style.cornerRadius
+          color: "transparent"
+          border.width: Style.spacing.hairline * 2
+          border.color: Color.urgent
         }
       }
 
@@ -268,9 +533,13 @@ Item {
             value: root._repeat
             showLabel: false
             onChanged: function(v) {
+              var dropped = root._endKey !== "" && root._endKey !== root._startKey
+                ? root._endKey : ""
               root._repeat = v
-              if (v !== "none" && root._endKey !== "" && root._endKey !== root._startKey)
+              if (v !== "none" && dropped !== "") {
+                root._endIgnored = dropped
                 root._endKey = ""
+              }
               if (root._repeat === "none") root._hasUntil = false
             }
           }
@@ -286,12 +555,18 @@ Item {
               anchors.fill: parent
               radius: Style.cornerRadius
               color: "transparent"
+              border.width: untilRow.activeFocus ? Style.spacing.hairline : 0
+              border.color: untilRow.activeFocus ? Util.alpha(root.accent, 0.7) : "transparent"
             }
 
             Row {
+              id: untilRow
               anchors.fill: parent
               anchors.leftMargin: Style.space(4)
               spacing: Style.space(4)
+              activeFocusOnTab: true
+              Keys.onSpacePressed: { root.toggleUntil(); event.accepted = true }
+              Keys.onReturnPressed: { root.toggleUntil(); event.accepted = true }
 
               Text {
                 anchors.verticalCenter: parent.verticalCenter
@@ -307,16 +582,28 @@ Item {
                 checked: root._hasUntil
                 foreground: root.foreground
                 accent: root.accent
-                onToggled: function() {
-                  root._hasUntil = !root._hasUntil
-                  if (root._hasUntil && !root._repeatUntil)
-                    root._repeatUntil = EM.addDays(root._startKey, 30)
-                }
+                onToggled: function() { root.toggleUntil() }
               }
             }
           }
         }
       }
+    }
+
+    // ---- 重复说明(预览 + 冲突提示) ----
+    Text {
+      visible: root._repeat !== "none"
+      width: parent.width
+      wrapMode: Text.Wrap
+      text: root._endIgnored !== ""
+        ? "已按单日重复,忽略原结束日期 " + root.shortKey(root._endIgnored)
+          + "(想限制到某天请在“限”里设置)"
+        : root.repeatSummary()
+      color: root._endIgnored !== ""
+        ? Qt.darker(Color.urgent, 1.2)
+        : Util.alpha(root.foreground, 0.55)
+      font.family: root.fontFamily
+      font.pixelSize: Style.font.caption
     }
 
     // ---- 重复截止 ----
@@ -338,9 +625,11 @@ Item {
         key: root._repeatUntil !== "" ? root._repeatUntil : root._startKey
         minKey: root._startKey
         width: Style.space(168)
+        weekStart: root.weekStart
         foreground: root.foreground
         accent: root.accent
         fontFamily: root.fontFamily
+        onEscapeKey: root.cancel()
         onStepped: { root._repeatUntil = untilStepper.key }
       }
 
@@ -422,7 +711,7 @@ Item {
           accentColor: root._flag === "important" ? root.dotRed : root.dotGreen
           foreground: root.foreground
           fontFamily: root.fontFamily
-          onChosen: root._status = "todo"
+          onChosen: root.chooseStatus("todo")
         }
 
         StatusChip {
@@ -433,7 +722,7 @@ Item {
           accentColor: root._flag === "important" ? root.dotRed : root.dotGreen
           foreground: root.foreground
           fontFamily: root.fontFamily
-          onChosen: root._status = "inprogress"
+          onChosen: root.chooseStatus("inprogress")
         }
 
         StatusChip {
@@ -444,7 +733,7 @@ Item {
           accentColor: root._flag === "important" ? root.dotRed : root.dotGreen
           foreground: root.foreground
           fontFamily: root.fontFamily
-          onChosen: root._status = "done"
+          onChosen: root.chooseStatus("done")
         }
       }
     }
@@ -463,12 +752,26 @@ Item {
       }
 
       Item {
+        id: remindWrap
         width: parent.width
         height: Style.spacing.controlHeight
 
+        Rectangle {
+          anchors.fill: parent
+          radius: Style.cornerRadius
+          color: "transparent"
+          border.width: remindRow.activeFocus ? Style.spacing.hairline : 0
+          border.color: remindRow.activeFocus ? Util.alpha(root.accent, 0.7) : "transparent"
+        }
+
         Row {
+          id: remindRow
           anchors.verticalCenter: parent.verticalCenter
           spacing: Style.space(6)
+          activeFocusOnTab: true
+          Keys.onSpacePressed: { root.toggleRemind(); event.accepted = true }
+          Keys.onReturnPressed: { root.toggleRemind(); event.accepted = true }
+          Keys.onEscapePressed: { root.cancel(); event.accepted = true }
 
           ToggleSwitch {
             id: remindSwitch
@@ -476,17 +779,26 @@ Item {
             checked: root._remind
             foreground: root.foreground
             accent: root.accent
-            onToggled: function() { root._remind = !root._remind }
+            onToggled: function() { root.toggleRemind() }
           }
 
           Text {
             anchors.verticalCenter: parent.verticalCenter
-            text: root._time === "" ? "全天 09:00 提醒" : "提前 10 分钟提醒"
+            text: root.remindText()
             color: root.dim
             font.family: root.fontFamily
             font.pixelSize: Style.font.caption
           }
         }
+      }
+
+      // 已完成时提醒被自动关闭的说明
+      Text {
+        visible: root._status === "done" && !root._remind
+        text: "已完成事件默认不再提醒;如需提醒请重新打开开关"
+        color: Util.alpha(root.foreground, 0.5)
+        font.family: root.fontFamily
+        font.pixelSize: Style.font.caption
       }
     }
 
@@ -500,9 +812,9 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         anchors.right: actionsRow.left
         anchors.rightMargin: Style.spacing.md
-        visible: root.timeBad || root.fieldError !== ""
+        visible: root.fieldError !== "" && root._errField === ""
         elide: Text.ElideRight
-        text: root.timeBad ? "时间应为 HH:MM(如 14:30)" : root.fieldError
+        text: root.fieldError
         color: Qt.darker(Color.urgent, 1.2)
         font.family: root.fontFamily
         font.pixelSize: Style.font.caption
@@ -526,7 +838,7 @@ Item {
         // 添加/保存:主操作,accent 实底突出
         Button {
           id: addBtn
-          text: root.editing ? "保存修改" : "添加"
+          text: root.editing ? (root._detach ? "仅此天保存" : "保存修改") : "添加"
           iconText: "\uDB81\uDC15"   // md-plus
           background: root.accent
           foreground: Color.background
@@ -556,6 +868,10 @@ Item {
 
     width: contentRow.implicitWidth + Style.space(22)
     height: Style.spacing.controlHeight
+    activeFocusOnTab: true
+
+    Keys.onSpacePressed: { chip.chosen(chip.value); event.accepted = true }
+    Keys.onReturnPressed: { chip.chosen(chip.value); event.accepted = true }
 
     Rectangle {
       anchors.fill: parent
@@ -563,8 +879,9 @@ Item {
       color: chip.active
         ? Util.alpha(chip.accentColor, 0.12)
         : (chip.hovered ? Util.alpha(chip.foreground, 0.06) : "transparent")
-      border.width: chip.active ? Style.spacing.hairline * 2 : 0
-      border.color: chip.active ? Util.alpha(chip.accentColor, 0.9) : "transparent"
+      border.width: chip.active || chip.activeFocus ? Style.spacing.hairline * 2 : 0
+      border.color: chip.active ? Util.alpha(chip.accentColor, 0.9)
+        : (chip.activeFocus ? Util.alpha(chip.foreground, 0.8) : "transparent")
 
       Behavior on color { ColorAnimation { duration: 80 } }
     }
@@ -574,7 +891,7 @@ Item {
       anchors.fill: parent
       hoverEnabled: true
       cursorShape: Qt.PointingHandCursor
-      onClicked: chip.chosen(chip.value)
+      onClicked: { chip.forceActiveFocus(); chip.chosen(chip.value) }
     }
 
     Row {
@@ -620,6 +937,10 @@ Item {
 
     width: contentRow.implicitWidth + Style.space(24)
     height: Style.spacing.controlHeight
+    activeFocusOnTab: true
+
+    Keys.onSpacePressed: { chip.chosen(chip.value); event.accepted = true }
+    Keys.onReturnPressed: { chip.chosen(chip.value); event.accepted = true }
 
     Rectangle {
       anchors.fill: parent
@@ -628,8 +949,9 @@ Item {
       color: chip.active
         ? Util.alpha(chip.dotColor, 0.12)
         : (chip.hovered ? Util.alpha(chip.foreground, 0.06) : "transparent")
-      border.width: chip.active ? Style.spacing.hairline * 2 : 0
-      border.color: chip.active ? chip.dotColor : "transparent"
+      border.width: chip.active || chip.activeFocus ? Style.spacing.hairline * 2 : 0
+      border.color: chip.active ? chip.dotColor
+        : (chip.activeFocus ? Util.alpha(chip.accent, 0.8) : "transparent")
 
       Behavior on color { ColorAnimation { duration: 80 } }
     }
@@ -639,7 +961,7 @@ Item {
       anchors.fill: parent
       hoverEnabled: true
       cursorShape: Qt.PointingHandCursor
-      onClicked: chip.chosen(chip.value)
+      onClicked: { chip.forceActiveFocus(); chip.chosen(chip.value) }
     }
 
     Row {
@@ -668,7 +990,99 @@ Item {
     }
   }
 
-  // 日期步进器:纯键盘/点击步进,避免自由文本日期的输入错误面
+  // 步进图标钮:单击步进一次,长按 420ms 后每 90ms 连发
+  component StepIconBtn: Item {
+    id: b
+
+    property string glyphText: ""
+    property string textLabel: ""
+    property string tipText: ""
+    property bool enabled: true
+    property color foreground: Color.foreground
+    property string fontFamily: Style.font.family
+    property var onStep: null      // function(): 触发一次步进
+
+    readonly property bool hovered: holdMouse.containsMouse
+    readonly property bool down: holdMouse.pressed
+    property bool _held: false
+    property int _pressStart: 0
+
+    width: Style.space(24)
+    height: Style.spacing.controlHeight
+
+    Rectangle {
+      anchors.fill: parent
+      radius: Style.cornerRadius
+      color: b.down ? Util.alpha(b.foreground, 0.14)
+        : (b.hovered ? Util.alpha(b.foreground, 0.07) : "transparent")
+      Behavior on color { ColorAnimation { duration: 70 } }
+    }
+
+    Text {
+      anchors.centerIn: parent
+      visible: b.textLabel === ""
+      text: b.glyphText
+      color: b.enabled
+        ? (b.hovered || b.down ? b.foreground : Qt.darker(b.foreground, 1.4))
+        : Qt.darker(b.foreground, 1.9)
+      font.family: b.fontFamily
+      font.pixelSize: Style.font.body
+    }
+
+    Text {
+      anchors.centerIn: parent
+      visible: b.textLabel !== ""
+      text: b.textLabel
+      color: b.enabled
+        ? (b.hovered || b.down ? b.foreground : Qt.darker(b.foreground, 1.2))
+        : Qt.darker(b.foreground, 1.9)
+      font.family: b.fontFamily
+      font.pixelSize: Style.font.caption
+      font.bold: b.hovered || b.down
+    }
+
+    MouseArea {
+      id: holdMouse
+      anchors.fill: parent
+      enabled: b.enabled
+      hoverEnabled: true
+      cursorShape: Qt.PointingHandCursor
+      onPressed: {
+        b._held = false
+        b._pressStart = Date.now()
+        holdTimer.interval = 420
+        holdTimer.repeat = false
+        holdTimer.running = true
+      }
+      onReleased: {
+        var wasHeld = b._held
+        holdTimer.running = false
+        if (!wasHeld && b.onStep) b.onStep()
+      }
+      onCanceled: { holdTimer.running = false }
+    }
+
+    Timer {
+      id: holdTimer
+      repeat: false
+      onTriggered: {
+        b._held = true
+        if (b.onStep) b.onStep()
+        holdTimer.interval = 90
+        holdTimer.repeat = true
+        holdTimer.running = true
+      }
+    }
+
+    PanelToolTip {
+      visible: !!holdMouse.hovered && b.tipText !== ""
+      text: b.tipText
+      fontFamily: b.fontFamily
+    }
+  }
+
+  // 日期步进器:点击/长按连发 ± 天、键盘步进、双击 = ±1 周、
+  // 焦点后 ↑↓ ←→ / PgUp PgDn、可选「今天」快捷钮。
   component DateStepper: Item {
     id: stepper
 
@@ -676,12 +1090,53 @@ Item {
     property string key: ""
     property string minKey: ""
     property bool locked: false
+    property bool showToday: false
+    property int pickerYear: 0
+    property int pickerMonth: 0
+    property int weekStart: 1
     property color foreground: Color.foreground
     property color accent: Color.accent
     property string fontFamily: Style.font.family
     signal stepped()
+    signal escapeKey()
 
     height: Style.spacing.controlHeight
+    activeFocusOnTab: true
+
+    function step(delta) {
+      if (stepper.locked) return
+      var current = stepper.key
+      if (current === "") current = EM.todayKey(new Date())
+      var next = EM.addDays(current, delta)
+      if (next === "") return
+      if (stepper.minKey !== "" && EM.cmpKeys(next, stepper.minKey) < 0) return
+      stepper.key = next
+      stepper.forceActiveFocus()
+      stepper.stepped()
+    }
+
+    function jumpToday() {
+      if (stepper.locked) return
+      var current = stepper.key || EM.todayKey(new Date())
+      var today = EM.todayKey(new Date())
+      var d = EM.diffDays(current, today)
+      stepper.step(d)
+    }
+
+    Keys.onLeftPressed: { stepper.step(-1); event.accepted = true }
+    Keys.onRightPressed: { stepper.step(1); event.accepted = true }
+    Keys.onUpPressed: { stepper.step(7); event.accepted = true }
+    Keys.onDownPressed: { stepper.step(-7); event.accepted = true }
+    Keys.onEscapePressed: { stepper.escapeKey(); event.accepted = true }
+
+    Rectangle {
+      anchors.fill: parent
+      radius: Style.cornerRadius
+      color: "transparent"
+      border.width: stepper.activeFocus ? Style.spacing.hairline : 0
+      border.color: stepper.activeFocus
+        ? Util.alpha(stepper.accent, 0.55) : "transparent"
+    }
 
     Row {
       anchors.fill: parent
@@ -698,48 +1153,131 @@ Item {
         font.pixelSize: Style.font.caption
       }
 
-      PanelActionButton {
+      StepIconBtn {
         id: prevBtn
         anchors.verticalCenter: parent.verticalCenter
-        iconText: "\uDB80\uDF74"   // md-minus
-        tooltipText: "前一天"
+        glyphText: "\uDB80\uDF74"     // md-minus
+        tipText: "前一天(按住连续)"
+        enabled: !stepper.locked
         foreground: stepper.foreground
         fontFamily: stepper.fontFamily
-        enabled: !stepper.locked
-        onClicked: stepper.step(-1)
+        onStep: function() { stepper.step(-1) }
       }
 
-      Text {
-        id: keyText
-        anchors.verticalCenter: parent.verticalCenter
-        text: stepper.key
-        elide: Text.ElideRight
-        color: stepper.locked ? Qt.darker(stepper.foreground, 1.8) : stepper.foreground
-        font.family: stepper.fontFamily
-        font.pixelSize: Style.font.caption
-        horizontalAlignment: Text.AlignHCenter
+      // 日期文本:单击打开迷你月历;双击 = ±1 周
+      Item {
+        id: keyHost
+        width: keyText.implicitWidth
+        height: parent.height
+
+        Text {
+          id: keyText
+          anchors.centerIn: parent
+          text: stepper.key
+          elide: Text.ElideRight
+          color: stepper.locked ? Qt.darker(stepper.foreground, 1.8) : stepper.foreground
+          font.family: stepper.fontFamily
+          font.pixelSize: Style.font.caption
+          horizontalAlignment: Text.AlignHCenter
+        }
+
+        MouseArea {
+          id: keyArea
+          anchors.fill: parent
+          anchors.margins: -Style.space(3)
+          hoverEnabled: true
+          cursorShape: Qt.PointingHandCursor
+          onClicked: {
+            if (stepper.locked) return
+            if (clickGate.running) {          // 第二次点击构成双击
+              clickGate.stop()
+              stepper.step(7)
+              return
+            }
+            clickGate.running = true           // 等待双可判
+          }
+        }
+
+        PanelToolTip {
+          visible: keyArea.containsMouse && !stepper.locked
+          text: "点开日历选择 · 双击跳一周"
+          fontFamily: stepper.fontFamily
+        }
+
+        Timer {
+          id: clickGate
+          interval: 240
+          onTriggered: {
+            stepper.pickerYear = EM.parseKey(stepper.key).year
+            stepper.pickerMonth = EM.parseKey(stepper.key).month
+            pickerPopup.open()
+          }
+        }
       }
 
-      PanelActionButton {
+      StepIconBtn {
         id: nextBtn
         anchors.verticalCenter: parent.verticalCenter
-        iconText: "\uDB81\uDC15"   // md-plus
-        tooltipText: "后一天"
+        glyphText: "\uDB81\uDC15"     // md-plus
+        tipText: "后一天(按住连续)"
+        enabled: !stepper.locked
         foreground: stepper.foreground
         fontFamily: stepper.fontFamily
-        enabled: !stepper.locked
-        onClicked: stepper.step(1)
+        onStep: function() { stepper.step(1) }
+      }
+
+      StepIconBtn {
+        id: todayBtn
+        visible: stepper.showToday && !stepper.locked
+          && stepper.key !== EM.todayKey(new Date())
+        anchors.verticalCenter: parent.verticalCenter
+        width: Style.space(44)
+        textLabel: "今天"
+        tipText: "回到今天"
+        foreground: stepper.foreground
+        fontFamily: stepper.fontFamily
+        onStep: function() { stepper.jumpToday() }
       }
     }
 
-    function step(delta) {
-      var current = stepper.key
-      if (current === "") current = EM.todayKey(new Date())
-      var next = EM.addDays(current, delta)
-      if (next === "") return
-      if (stepper.minKey !== "" && EM.cmpKeys(next, stepper.minKey) < 0) return
-      stepper.key = next
-      stepper.stepped()
+    // ---- 迷你月历弹层 ----
+    QC.Popup {
+      id: pickerPopup
+      parent: stepper
+      x: 0
+      y: stepper.height + Style.space(3)
+      width: Math.min(Style.space(236), stepper.width)
+      padding: Style.spacing.hairline * 2
+      closePolicy: QC.Popup.CloseOnEscape | QC.Popup.CloseOnPressOutside
+      focus: true
+
+      background: Rectangle {
+        color: Color.background
+        radius: Style.cornerRadius
+        border.width: Style.spacing.hairline
+        border.color: Util.alpha(stepper.accent, 0.35)
+      }
+
+      contentItem: MiniCalendar {
+        width: pickerPopup.width
+        year: stepper.pickerYear > 0 ? stepper.pickerYear : EM.parseKey(stepper.key || EM.todayKey(new Date())).year
+        month: stepper.pickerMonth > 0 ? stepper.pickerMonth : EM.parseKey(stepper.key || EM.todayKey(new Date())).month
+        selectedKey: stepper.key
+        todayKey: EM.todayKey(new Date())
+        weekStart: stepper.weekStart
+        foreground: stepper.foreground
+        accent: stepper.accent
+        fontFamily: stepper.fontFamily
+        onPicked: function(k) {
+          if (stepper.locked) { pickerPopup.close(); return }
+          if (stepper.minKey !== "" && EM.cmpKeys(k, stepper.minKey) < 0)
+            k = stepper.minKey
+          stepper.key = k
+          stepper.forceActiveFocus()
+          stepper.stepped()
+          pickerPopup.close()
+        }
+      }
     }
   }
 }

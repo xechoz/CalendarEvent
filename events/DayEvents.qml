@@ -16,6 +16,7 @@ Item {
   property color accent: Color.accent
   property color dotRed: "#e0744e"
   property color dotGreen: "#7aa2f7"
+  property int weekStart: 1
   property string fontFamily: Style.font.family
 
   readonly property color dim: Qt.darker(foreground, 1.5)
@@ -59,6 +60,7 @@ Item {
   function openAdd() {
     if (root.formOpen) return
     root.formEditing = null
+    form.editingOccurrenceKey = ""
     root.formOpen = true
     Qt.callLater(function() {
       form.beginAdd(root.dateKey)
@@ -69,6 +71,7 @@ Item {
   function openEdit(occurrence) {
     if (!occurrence || !occurrence.event) return
     root.formEditing = occurrence
+    form.editingOccurrenceKey = occurrence.key || occurrence.event.date || ""
     root.formOpen = true
     Qt.callLater(function() {
       form.beginEdit(occurrence.event)
@@ -83,6 +86,18 @@ Item {
 
   function commitForm(fields) {
     if (!root.store) return
+    if (fields.detachFrom && fields.detachFrom !== "" && fields.date) {
+      // 仅改这一天:原系列跳过该出现日 + 该日新建单日事件
+      root.store.skipOccurrence(fields.detachFrom, fields.date)
+      var copy = {}
+      for (var k in fields) copy[k] = fields[k]
+      copy.id = ""
+      copy.repeat = "none"
+      copy.repeatUntil = null
+      root.store.addEvent(copy)
+      root.closeForm()
+      return
+    }
     if (fields.id && fields.id !== "") root.store.updateEvent(fields.id, fields)
     else root.store.addEvent(fields)
     root.closeForm()
@@ -147,9 +162,19 @@ Item {
 
   // ======================================================== 布局
   // 显式自报测量高度:外层 Column 依赖子项 implicitHeight 布局,
-  // 不自报的话事件区会塌成 0 高、画在滚动区外
-  implicitHeight: layout.implicitHeight
-  readonly property real measuredHeight: layout.implicitHeight
+  // 不自报的话事件区会塌成 0 高、画在滚动区外。
+  // 手算(而非读 layout.implicitHeight):后者要等渲染帧 polish 才重算,
+  // 表单开关/列表切换希望立即让外层 Flickable 得知新高度。
+  readonly property real errorBarH:
+    root.store && root.store.lastError !== "" ? Style.space(26) : 0
+  readonly property real listH:
+    root.occurrences.length > 0 ? list.contentHeight : Style.space(24)
+  readonly property real formH: root.formOpen ? formArea.height : 0
+  readonly property real activeListH: root.formOpen ? 0 : root.listH
+  readonly property int _slotCount: 2 + (root.errorBarH > 0 ? 1 : 0)  // 头部 + 列表/表单 + 错误条
+  implicitHeight: Style.space(26) + root.activeListH + root.formH + root.errorBarH
+    + root.gap * (_slotCount - 1)
+  readonly property real measuredHeight: root.implicitHeight
 
   Column {
     id: layout
@@ -247,6 +272,7 @@ Item {
             accent: root.accent
             dotRed: root.dotRed
             dotGreen: root.dotGreen
+            weekStart: root.weekStart
             fontFamily: root.fontFamily
             onCancel: root.closeForm()
             onSubmit: function(fields) { root.commitForm(fields) }

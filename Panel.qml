@@ -404,6 +404,7 @@ Panel {
             dateKey: root.selectedKey
             dotRed: root.dotRed
             dotGreen: root.dotGreen
+            weekStart: root.weekStart
             foreground: root.contentForeground
             accent: Color.accent
             fontFamily: root.contentFontFamily
