@@ -736,7 +736,7 @@ Item {
       PanelActionButton {
         id: prevBtn
         anchors.verticalCenter: parent.verticalCenter
-        iconText: "\uDB80\uDC41"   // md-chevron_left
+        iconText: "\uDB80\uDF74"   // md-minus
         tooltipText: "前一天"
         foreground: stepper.foreground
         fontFamily: stepper.fontFamily
@@ -758,7 +758,7 @@ Item {
       PanelActionButton {
         id: nextBtn
         anchors.verticalCenter: parent.verticalCenter
-        iconText: "\uDB80\uDC42"   // md-chevron_right
+        iconText: "\uDB81\uDC15"   // md-plus
         tooltipText: "后一天"
         foreground: stepper.foreground
         fontFamily: stepper.fontFamily
