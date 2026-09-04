@@ -109,12 +109,6 @@ function normalizeTitle(value) {
   return t.length > 120 ? t.slice(0, 120) : t
 }
 
-function normalizeNote(value) {
-  var t = String(value === undefined || value === null ? "" : value)
-  t = t.replace(/^\s+|\s+$/g, "")
-  return t.length > 300 ? t.slice(0, 300) : t
-}
-
 function normalizeDate(value) {
   if (value === undefined || value === null) return null
   var p = parseKey(String(value).trim())
@@ -151,7 +145,6 @@ function normalizeEvent(raw) {
     date: date,
     endDate: endDate,
     time: time,
-    note: normalizeNote(raw.note),
     repeat: repeat,
     repeatUntil: repeatUntil,
     remind: raw.remind !== false,
@@ -192,7 +185,6 @@ function buildEvent(fields) {
     date: f.date,
     endDate: f.endDate,
     time: f.time,
-    note: f.note,
     repeat: f.repeat,
     repeatUntil: f.repeatUntil,
     remind: f.remind,
@@ -375,7 +367,6 @@ if (typeof module !== "undefined") {
     normalizeRepeat: normalizeRepeat,
     normalizeTime: normalizeTime,
     normalizeTitle: normalizeTitle,
-    normalizeNote: normalizeNote,
     normalizeDate: normalizeDate,
     normalizeEvent: normalizeEvent,
     sanitizeEvents: sanitizeEvents,

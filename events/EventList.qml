@@ -37,7 +37,6 @@ Item {
       parts.push("全天 · " + event.date + " ~ " + event.endDate)
     else parts.push("全天")
     if (event.repeat && event.repeat !== "none") parts.push(root.repeatLabel(event.repeat))
-    if (event.note) parts.push(String(event.note))
     return parts.join("  ·  ")
   }
 

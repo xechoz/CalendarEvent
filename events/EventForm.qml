@@ -6,7 +6,7 @@ import "EventsModel.js" as EM
 // 添加/编辑事件表单(events/ 模块,纯 UI)。
 // 不直接碰存储:提交时把字段对象经 submit(fields) 抛出,由聚合层写 EventStore;
 // 取消经 cancel()。字段:标题 / 起止日期(多日)/ 时间(空=全天)/
-// 重复 + 截止 / 到点提醒 / 备注。规则:多日与重复互斥(见 EventsModel)。
+// 重复 + 截止 / 到点提醒。规则:多日与重复互斥(见 EventsModel)。
 Item {
   id: root
 
@@ -35,7 +35,6 @@ Item {
   property string _repeatUntil: ""
   property bool _hasUntil: false
   property bool _remind: true
-  property string _note: ""
   property string fieldError: ""
 
   readonly property bool timeBad: root._time !== "" && EM.normalizeTime(root._time) === null
@@ -60,7 +59,6 @@ Item {
     root._repeatUntil = ""
     root._hasUntil = false
     root._remind = true
-    root._note = ""
     root.fieldError = ""
   }
 
@@ -77,7 +75,6 @@ Item {
     root._repeatUntil = event.repeatUntil || ""
     root._hasUntil = !!event.repeatUntil
     root._remind = event.remind !== false
-    root._note = event.note || ""
     root.fieldError = ""
   }
 
@@ -118,7 +115,6 @@ Item {
       date: startKey,
       endDate: endKey,
       time: EM.normalizeTime(root._time),
-      note: EM.normalizeNote(root._note),
       repeat: repeat,
       repeatUntil: untilKey,
       remind: root._remind
@@ -453,76 +449,43 @@ Item {
       }
     }
 
-    // ---- 提醒 / 备注 ----
-    Row {
+    // ---- 提醒 ----
+    Column {
       width: parent.width
-      spacing: Style.space(8)
+      spacing: Style.space(3)
 
-      Column {
-        width: root.halfWidth()
-        spacing: Style.space(3)
-
-        Text {
-          text: "提醒"
-          color: root.dim
-          font.family: root.fontFamily
-          font.pixelSize: Style.font.caption
-          font.bold: true
-        }
-
-        Item {
-          width: parent.width
-          height: Style.spacing.controlHeight
-
-          Row {
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: Style.space(6)
-
-            ToggleSwitch {
-              id: remindSwitch
-              anchors.verticalCenter: parent.verticalCenter
-              checked: root._remind
-              foreground: root.foreground
-              accent: root.accent
-              onToggled: function() { root._remind = !root._remind }
-            }
-
-            Text {
-              anchors.verticalCenter: parent.verticalCenter
-              text: root._time === "" ? "全天 09:00 提醒" : "提前 10 分钟提醒"
-              color: root.dim
-              font.family: root.fontFamily
-              font.pixelSize: Style.font.caption
-            }
-          }
-        }
+      Text {
+        text: "提醒"
+        color: root.dim
+        font.family: root.fontFamily
+        font.pixelSize: Style.font.caption
+        font.bold: true
       }
 
-      Column {
-        width: root.halfWidth()
-        spacing: Style.space(3)
+      Item {
+        width: parent.width
+        height: Style.spacing.controlHeight
 
-        Text {
-          text: "备注"
-          color: root.dim
-          font.family: root.fontFamily
-          font.pixelSize: Style.font.caption
-          font.bold: true
-        }
+        Row {
+          anchors.verticalCenter: parent.verticalCenter
+          spacing: Style.space(6)
 
-        TextField {
-          id: noteField
-          width: parent.width
-          foreground: root.foreground
-          accent: root.accent
-          font.family: root.fontFamily
-          font.pixelSize: Style.font.body
-          placeholderText: "可选,一行"
-          text: root._note
-          verticalPadding: Style.space(5)
-          onTextChanged: { root._note = text }
-          onAccepted: root.commit()
-          Keys.onEscapePressed: root.cancel()
+          ToggleSwitch {
+            id: remindSwitch
+            anchors.verticalCenter: parent.verticalCenter
+            checked: root._remind
+            foreground: root.foreground
+            accent: root.accent
+            onToggled: function() { root._remind = !root._remind }
+          }
+
+          Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: root._time === "" ? "全天 09:00 提醒" : "提前 10 分钟提醒"
+            color: root.dim
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.caption
+          }
         }
       }
     }

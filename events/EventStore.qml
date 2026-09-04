@@ -123,7 +123,7 @@ Item {
     if (!target) return null
     var merged = {}
     for (var k in target) merged[k] = target[k]
-    var keys = ["title", "flag", "status", "date", "endDate", "time", "note", "repeat", "repeatUntil", "remind"]
+    var keys = ["title", "flag", "status", "date", "endDate", "time", "repeat", "repeatUntil", "remind"]
     for (var i = 0; i < keys.length; i++) {
       if (fields[keys[i]] !== undefined) merged[keys[i]] = fields[keys[i]]
     }

@@ -74,7 +74,6 @@ Item {
     else parts.push("全天事件")
     if (event.endDate && event.endDate !== event.date)
       parts.push("第 " + (EM.diffDays(event.date, dateKey) + 1) + " 天")
-    if (event.note) parts.push(String(event.note))
     var body = parts.join(" · ")
     if (root.notifyHook) { root.notifyHook(event, at, dateKey); return }
     notifyProc.command = ["omarchy-notification-send", "-g", "󰃭", event.title, body]
