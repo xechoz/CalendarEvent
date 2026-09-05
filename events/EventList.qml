@@ -61,7 +61,7 @@ Item {
     width: root.width
     height: root.rowHeight
     radius: Style.cornerRadius
-    color: root.active ? Style.hoverFillFor(root.foreground, root.foreground) : "transparent"
+    color: row.active ? Style.hoverFillFor(root.foreground, root.foreground) : "transparent"
     Behavior on color { ColorAnimation { duration: 80 } }
 
     readonly property var ev: occurrence && occurrence.event ? occurrence.event : null
@@ -76,6 +76,7 @@ Item {
     // ✕ 看起来常驻。
     property bool xHovered: false
     readonly property bool active: mouse.containsMouse || xHovered
+    readonly property bool dbgCM: mouse.containsMouse   // 临时诊断
 
     function startHideTimer() { if (!row.xHovered) hideTimer.restart() }
 
@@ -160,8 +161,8 @@ Item {
       id: titleText
       anchors.left: chip.right
       anchors.leftMargin: Style.space(8)
-      anchors.right: root.active ? deleteBtn.left : parent.right
-      anchors.rightMargin: root.active ? Style.space(4) : Style.space(8)
+      anchors.right: row.active ? deleteBtn.left : parent.right
+      anchors.rightMargin: row.active ? Style.space(4) : Style.space(8)
       anchors.verticalCenter: parent.verticalCenter
       text: row.ev ? row.ev.title : ""
       elide: Text.ElideRight
@@ -175,8 +176,8 @@ Item {
       id: tagsRow
       anchors.left: titleText.right
       anchors.leftMargin: Style.space(6)
-      anchors.right: root.active ? deleteBtn.left : parent.right
-      anchors.rightMargin: root.active ? Style.space(4) : Style.space(8)
+      anchors.right: row.active ? deleteBtn.left : parent.right
+      anchors.rightMargin: row.active ? Style.space(4) : Style.space(8)
       anchors.verticalCenter: parent.verticalCenter
       spacing: Style.space(6)
       clip: true
@@ -193,7 +194,8 @@ Item {
 
     PanelActionButton {
       id: deleteBtn
-      visible: root.active
+      objectName: "evDelBtn"
+      visible: row.active
       anchors.right: parent.right
       anchors.rightMargin: Style.space(6)
       anchors.verticalCenter: parent.verticalCenter

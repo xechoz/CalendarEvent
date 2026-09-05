@@ -139,6 +139,10 @@ BarWidget {
     target: "xechoz.clock"
 
     function refresh(): void { root.broadcast("refresh") }
+    function debugSelect(key: string): void {
+      var p = panelLoader.item
+      if (p && typeof p.debugSelect === "function") p.debugSelect(key)
+    }
     function eventsDebug(): string {
       var p = panelLoader.item
       if (!p) return "no-panel status=" + panelLoader.status

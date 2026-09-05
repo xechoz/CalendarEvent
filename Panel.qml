@@ -69,6 +69,39 @@ Panel {
       + " colI=" + Math.round(contentColumn.implicitHeight)
       + " occ=" + dayEvents.occurrences.length
       + " dots=" + JSON.stringify(root.dayDots)
+      + " delVisible=" + root.countObj("evDelBtn", dayEvents)
+      + " delDbg=" + root.delDbg()
+  }
+
+  // 临时诊断:选中某日(排查用)
+  function debugSelect(key) { root.selectedKey = String(key || "") }
+
+  // 临时诊断:第一个可见删除键所在行的状态细节
+  function delDbg() {
+    function find(node) {
+      if (!node) return null
+      if (node.objectName === "evDelBtn") return node
+      var kids = node.children ? node.children : []
+      for (var i = 0; i < kids.length; i++) { var r = find(kids[i]); if (r) return r }
+      return null
+    }
+    var btn = find(dayEvents)
+    if (!btn) return "-"
+    var row = btn.parent
+    return "active=" + row.active + " xHover=" + row.xHovered + " cm=" + row.dbgCM + " vis=" + btn.visible
+  }
+
+  // 临时诊断:统计 objectName 匹配且可见的子孙
+  function countObj(name, item) {
+    var n = 0
+    function scan(node) {
+      if (!node) return
+      if (node.objectName === name) { if (node.visible) n++ ; return }
+      var kids = node.children ? node.children : []
+      for (var i = 0; i < kids.length; i++) scan(kids[i])
+    }
+    scan(item)
+    return n
   }
 
   // ---- 当月格事件索引(dateKey → 该日圆点数组,仅当月格窗口;圆点用)。
