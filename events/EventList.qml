@@ -146,8 +146,8 @@ Item {
       id: titleText
       anchors.left: chip.right
       anchors.leftMargin: Style.space(8)
-      anchors.right: mouse.containsMouse ? deleteBtn.left : parent.right
-      anchors.rightMargin: mouse.containsMouse ? Style.space(4) : Style.space(8)
+      anchors.right: deleteBtn.left
+      anchors.rightMargin: Style.space(4)
       anchors.verticalCenter: parent.verticalCenter
       text: row.ev ? row.ev.title : ""
       elide: Text.ElideRight
@@ -161,8 +161,8 @@ Item {
       id: tagsRow
       anchors.left: titleText.right
       anchors.leftMargin: Style.space(6)
-      anchors.right: mouse.containsMouse ? deleteBtn.left : parent.right
-      anchors.rightMargin: mouse.containsMouse ? Style.space(4) : Style.space(8)
+      anchors.right: deleteBtn.left
+      anchors.rightMargin: Style.space(4)
       anchors.verticalCenter: parent.verticalCenter
       spacing: Style.space(6)
       clip: true
@@ -179,11 +179,11 @@ Item {
 
     PanelActionButton {
       id: deleteBtn
-      visible: mouse.containsMouse
       anchors.right: parent.right
       anchors.rightMargin: Style.space(6)
       anchors.verticalCenter: parent.verticalCenter
-      // 放大命中区(默认 22px 太小难点)
+      opacity: mouse.containsMouse ? 1 : 0.6
+      Behavior on opacity { NumberAnimation { duration: 90 } }
       size: Style.space(30)
       iconText: "\uDB80\uDD56"            // md-close
       tooltipText: "删除(点击行本身可编辑)"
