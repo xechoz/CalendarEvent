@@ -71,15 +71,26 @@ Item {
     // 重要/普通 不再用单独小圆点表达,直接体现在状态圆点的颜色上
     readonly property color importanceColor: ev && ev.flag === "important"
       ? root.dotRed : root.dotGreen
-    // 行被“选中/悬停”(含悬停在 ✕ 上)才显示 ✕;二者合并保证按钮不抖动
+    // 行被“选中/悬停”时才显示 ✕。行悬停与按钮悬停合并(指针在按钮上时
+    // 行本身不再算 hovered),并用 150ms 宽限定时器收尾,避免状态残留导致
+    // ✕ 看起来常驻。
     property bool xHovered: false
     readonly property bool active: mouse.containsMouse || xHovered
+
+    function startHideTimer() { if (!row.xHovered) hideTimer.restart() }
+
+    Timer {
+      id: hideTimer
+      interval: 150
+      onTriggered: row.xHovered = false
+    }
 
     MouseArea {
       id: mouse
       anchors.fill: parent
       hoverEnabled: true
       cursorShape: Qt.PointingHandCursor
+      onExited: row.startHideTimer()
       onClicked: root.editRequested(row.occurrence)
     }
 
@@ -192,7 +203,10 @@ Item {
       foreground: root.foreground
       hoverColor: Qt.darker(Color.urgent, 1.2)
       fontFamily: root.fontFamily
-      onHovered: function(h) { row.xHovered = h }
+      onHovered: function(h) {
+        hideTimer.stop()
+        row.xHovered = h
+      }
       onClicked: root.deleteRequested(row.occurrence)
     }
   }
