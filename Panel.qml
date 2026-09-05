@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import QtQuick.Controls as QC
 import qs.Commons
 import qs.Ui
 import "Model.js" as Model
@@ -416,6 +417,132 @@ Panel {
           }
         }
       }
+    // ============================================================ 删除确认浮层
+    // 覆盖整块弹层而非事件区:事件少时弹层高度小,若浮层只盖事件区,
+    // 确认卡片会被压缩、底部按钮需滚动才能点。这里整体居中且有足够高度。
+    Item {
+      id: delLayer
+      anchors.fill: parent
+      visible: dayEvents && dayEvents.pendingDelete != null
+
+      readonly property var pending: dayEvents ? dayEvents.pendingDelete : null
+      readonly property bool multi: pending
+        ? (!!pending.event.repeat && pending.event.repeat !== "none")
+        : false
+      readonly property string message: pending
+        ? "删除「" + pending.event.title + "」?" : ""
+
+      function close(): void {
+        if (dayEvents) dayEvents.pendingDelete = null
+        Qt.callLater(function() { if (keyCatcher) keyCatcher.forceActiveFocus() })
+      }
+
+      Rectangle {
+        anchors.fill: parent
+        color: Util.alpha(Color.background, 0.72)
+
+        MouseArea {
+          anchors.fill: parent
+          onClicked: delLayer.close()
+        }
+      }
+
+      BorderSurface {
+        id: delCard
+        width: Math.min(parent.width - Style.space(16), Style.space(330))
+        // 内容超高才在卡内滚动;整层高度充足时正常情况不需要滚动
+        height: Math.min(Math.max(delScrollContent.implicitHeight, Style.space(170)) + Style.space(32),
+          Math.max(Style.space(60), parent.height - Style.space(24)))
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.verticalCenter: parent.verticalCenter
+        color: Color.background
+        borderSpec: Border.flat(Color.accent, Style.normalBorderWidth)
+        radius: Style.cornerRadius
+        padding: Style.space(16)
+
+        Flickable {
+          id: delScroll
+          anchors.fill: parent
+          clip: true
+          contentWidth: width
+          contentHeight: delScrollContent.implicitHeight
+          boundsBehavior: Flickable.StopAtBounds
+          QC.ScrollBar.vertical: QC.ScrollBar { policy: delScrollContent.implicitHeight > delScroll.height
+              ? QC.ScrollBar.AsNeeded : QC.ScrollBar.AlwaysOff }
+
+          Column {
+            id: delScrollContent
+            width: parent.width
+            spacing: Style.space(10)
+
+            Item { width: 1; height: Style.space(6) }   // 顶部留白
+
+            Text {
+              width: parent.width
+              horizontalAlignment: Text.AlignHCenter
+              text: delLayer.message
+              wrapMode: Text.Wrap
+              color: root.contentForeground
+              font.family: root.contentFontFamily
+              font.pixelSize: Style.font.body
+            }
+
+            Text {
+              width: parent.width
+              horizontalAlignment: Text.AlignHCenter
+              visible: delLayer.multi
+              wrapMode: Text.Wrap
+              text: "这是重复出现的事件,可以只去掉这一天,或整条删除。"
+              color: Qt.darker(root.contentForeground, 1.5)
+              font.family: root.contentFontFamily
+              font.pixelSize: Style.font.caption
+            }
+
+            Item { width: 1; height: Style.space(6) }   // 文字与按钮区留白
+
+            Column {
+              width: parent.width
+              spacing: Style.space(4)
+
+              Button {
+                id: deleteAllBtn
+                width: parent.width
+                text: delLayer.multi ? "整条删除(含以后所有出现)" : "删除"
+                iconText: "\uDB80\uDDB4"     // md-delete
+                foreground: Color.background
+                background: Qt.darker(Color.urgent, 1.15)
+                accent: Color.background
+                fontFamily: root.contentFontFamily
+                fontSize: Style.font.bodySmall
+                onClicked: dayEvents.confirmDeleteAll()
+              }
+
+              Button {
+                width: parent.width
+                visible: delLayer.multi
+                text: "仅去掉这一天"
+                foreground: root.contentForeground
+                accent: Color.accent
+                fontFamily: root.contentFontFamily
+                fontSize: Style.font.bodySmall
+                bordered: true
+                onClicked: dayEvents.confirmDeleteOnce()
+              }
+
+              Button {
+                width: parent.width
+                text: "取消"
+                foreground: Qt.darker(root.contentForeground, 1.5)
+                fontFamily: root.contentFontFamily
+                fontSize: Style.font.bodySmall
+                bordered: true
+                onClicked: delLayer.close()
+              }
+            }
+          }
+        }
+      }
+    }
     }
   }
 }
