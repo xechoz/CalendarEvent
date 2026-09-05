@@ -27,19 +27,6 @@ Item {
   readonly property real contentHeight: Math.max(0,
     root.occurrences.length * (root.rowHeight + root.rowGap) - root.rowGap)
 
-  function metaLine(event, occurrence) {
-    var parts = []
-    if (event.flag === "important") parts.push("重要")
-    if (event.status === "done") parts.push("已完成")
-    else if (event.status === "inprogress") parts.push("进行中")
-    if (event.time) parts.push("时间 " + event.time)
-    else if (event.endDate && event.endDate !== event.date)
-      parts.push("全天 · " + event.date + " ~ " + event.endDate)
-    else parts.push("全天")
-    if (event.repeat && event.repeat !== "none") parts.push(root.repeatLabel(event.repeat))
-    return parts.join("  ·  ")
-  }
-
   function statusGlyph(status) {
     if (status === "done") return "\uDB81\uDDE0"        // 实心圆+钩(md check-circle)
     if (status === "inprogress") return "\uDB84\uDF96"  // 半圆
@@ -64,11 +51,6 @@ Item {
     if (repeat === "monthly") return "每月"
     if (repeat === "yearly") return "每年"
     return ""
-  }
-
-  function repeatShort(repeat) {
-    var label = root.repeatLabel(repeat)
-    return label !== "" ? " · 重复·" + label : ""
   }
 
   component EventRow: Rectangle {
@@ -207,12 +189,6 @@ Item {
       hoverColor: Qt.darker(Color.urgent, 1.2)
       fontFamily: root.fontFamily
       onClicked: root.deleteRequested(row.occurrence)
-    }
-
-    PanelToolTip {
-      visible: mouse.containsMouse
-      text: row.ev ? root.metaLine(row.ev, row.occurrence) : ""
-      fontFamily: root.fontFamily
     }
   }
 
