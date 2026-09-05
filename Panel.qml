@@ -529,7 +529,7 @@ component DangerBtn: Item {
       BorderSurface {
         id: delCard
         width: Math.min(parent.width - Style.space(16), Style.space(360))
-        height: delLayer.multi ? Style.space(168) : Style.space(140)
+        height: delLayer.multi ? Style.space(196) : Style.space(150)
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
         color: Color.background
@@ -537,27 +537,36 @@ component DangerBtn: Item {
         radius: Style.cornerRadius
         padding: Style.space(16)
 
-        // 标题消息固定在卡片顶部(居中)
-        Text {
+        // 标题消息:在消息区内水平垂直居中(上不贴卡片顶、下不压按钮)
+        Item {
           anchors.left: parent.left
           anchors.right: parent.right
           anchors.top: parent.top
-          anchors.topMargin: Style.space(2)
-          horizontalAlignment: Text.AlignHCenter
-          text: delLayer.message
-          wrapMode: Text.Wrap
-          color: root.contentForeground
-          font.family: root.contentFontFamily
-          font.pixelSize: Style.font.body
-          font.bold: true
+          anchors.bottomMargin: 0
+          anchors.bottom: actCol.top
+
+          Text {
+            width: parent.width - Style.space(36)
+            anchors.centerIn: parent
+            horizontalAlignment: Text.AlignHCenter
+            text: delLayer.message
+            wrapMode: Text.Wrap
+            color: root.contentForeground
+            font.family: root.contentFontFamily
+            font.pixelSize: Style.font.body
+            font.bold: true
+          }
         }
 
-        // 操作按钮固定贴卡片底部
+        // 操作按钮:固定贴卡片底部,四周带 margin(不与卡片边缘、消息相贴)
         Column {
+          id: actCol
           anchors.left: parent.left
+          anchors.leftMargin: Style.space(18)
           anchors.right: parent.right
+          anchors.rightMargin: Style.space(18)
           anchors.bottom: parent.bottom
-          anchors.bottomMargin: Style.space(2)
+          anchors.bottomMargin: Style.space(14)
           spacing: Style.space(8)
 
           DangerBtn {
