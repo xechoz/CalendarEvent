@@ -854,7 +854,9 @@ Item {
     }
   }
 
-  // 主按钮(添加/保存):accent 实底;悬停/按下只降透明度 50%,不变灰
+  // 主按钮(添加/保存):accent 实底。
+  // 反馈语言:悬停 → 叠 10% 白蒙层微提亮(引导可点);按下 → 整体透明度 70%
+  // (按下去);键盘 Tab 有焦点环,Space/Enter 触发。
   component PrimaryBtn: Item {
     id: pb
 
@@ -868,17 +870,41 @@ Item {
     signal clicked()
 
     readonly property bool hot: pbMouse.containsMouse
+    readonly property bool down: pbMouse.pressed
 
     implicitWidth: content.implicitWidth + Style.space(24)
     implicitHeight: Style.spacing.controlHeight
+    activeFocusOnTab: true
 
-    opacity: pb.hot ? 0.5 : 1
+    opacity: pb.down ? 0.7 : 1
     Behavior on opacity { NumberAnimation { duration: 90 } }
+
+    Keys.onSpacePressed: { pb.clicked(); event.accepted = true }
+    Keys.onReturnPressed: { pb.clicked(); event.accepted = true }
 
     Rectangle {
       anchors.fill: parent
       radius: Style.cornerRadius
       color: pb.accent
+    }
+
+    // 悬停提亮蒙层(按下时不叠加,避免和透明度混淆)
+    Rectangle {
+      anchors.fill: parent
+      radius: Style.cornerRadius
+      color: "#ffffff"
+      opacity: pb.hot && !pb.down ? 0.1 : 0
+      Behavior on opacity { NumberAnimation { duration: 90 } }
+    }
+
+    // 键盘焦点环
+    Rectangle {
+      anchors.fill: parent
+      anchors.margins: -Style.space(2)
+      radius: Style.cornerRadius + Style.space(2)
+      color: "transparent"
+      border.width: pb.activeFocus ? Style.spacing.hairline * 2 : 0
+      border.color: pb.activeFocus ? Util.alpha(pb.accent, 0.9) : "transparent"
     }
 
     Row {
