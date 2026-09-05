@@ -312,6 +312,86 @@ Panel {
     })
   }
 
+component DangerBtn: Item {
+  id: db
+
+  property string text: ""
+  property string iconText: ""
+  property color fill: Qt.darker(Color.urgent, 1.15)
+  property color foreground: Color.background
+  property string fontFamily: Style.font.family
+  property int fontSize: Style.font.bodySmall
+
+  signal clicked()
+
+  readonly property bool hot: dbMouse.containsMouse
+  readonly property bool down: dbMouse.pressed
+
+  implicitWidth: content.implicitWidth + Style.space(24)
+  implicitHeight: Style.spacing.controlHeight
+  activeFocusOnTab: true
+
+  opacity: db.down ? 0.7 : 1
+  Behavior on opacity { NumberAnimation { duration: 90 } }
+
+  Keys.onSpacePressed: { db.clicked(); event.accepted = true }
+  Keys.onReturnPressed: { db.clicked(); event.accepted = true }
+
+  Rectangle {
+    anchors.fill: parent
+    radius: Style.cornerRadius
+    color: db.fill
+  }
+
+  Rectangle {
+    anchors.fill: parent
+    radius: Style.cornerRadius
+    color: "#ffffff"
+    opacity: db.hot && !db.down ? 0.1 : 0
+    Behavior on opacity { NumberAnimation { duration: 90 } }
+  }
+
+  Rectangle {
+    anchors.fill: parent
+    anchors.margins: -Style.space(2)
+    radius: Style.cornerRadius + Style.space(2)
+    color: "transparent"
+    border.width: db.activeFocus ? Style.spacing.hairline * 2 : 0
+    border.color: db.activeFocus ? Color.urgent : "transparent"
+  }
+
+  Row {
+    id: content
+    anchors.centerIn: parent
+    spacing: Style.space(6)
+
+    Text {
+      visible: db.iconText !== ""
+      text: db.iconText
+      color: db.foreground
+      font.family: db.fontFamily
+      font.pixelSize: db.fontSize
+      anchors.verticalCenter: parent.verticalCenter
+    }
+
+    Text {
+      text: db.text
+      color: db.foreground
+      font.family: db.fontFamily
+      font.pixelSize: db.fontSize
+      font.bold: true
+    }
+  }
+
+  MouseArea {
+    id: dbMouse
+    anchors.fill: parent
+    hoverEnabled: true
+    cursorShape: Qt.PointingHandCursor
+    onClicked: db.clicked()
+  }
+}
+
   // ============================================================ 面板布局
   KeyboardPanel {
     id: panel
@@ -449,14 +529,14 @@ Panel {
 
       BorderSurface {
         id: delCard
-        width: Math.min(parent.width - Style.space(16), Style.space(330))
+        width: Math.min(parent.width - Style.space(16), Style.space(360))
         // 内容超高才在卡内滚动;整层高度充足时正常情况不需要滚动
         height: Math.min(Math.max(delScrollContent.implicitHeight, Style.space(170)) + Style.space(32),
           Math.max(Style.space(60), parent.height - Style.space(24)))
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
         color: Color.background
-        borderSpec: Border.flat(Color.accent, Style.normalBorderWidth)
+        borderSpec: Border.flat(Qt.darker(Color.urgent, 1.05), Style.normalBorderWidth)
         radius: Style.cornerRadius
         padding: Style.space(16)
 
@@ -473,70 +553,114 @@ Panel {
           Column {
             id: delScrollContent
             width: parent.width
-            spacing: Style.space(10)
+            spacing: Style.space(8)
 
-            Item { width: 1; height: Style.space(6) }   // 顶部留白
-
-            Text {
-              width: parent.width
-              horizontalAlignment: Text.AlignHCenter
-              text: delLayer.message
-              wrapMode: Text.Wrap
-              color: root.contentForeground
-              font.family: root.contentFontFamily
-              font.pixelSize: Style.font.body
-            }
-
-            Text {
-              width: parent.width
-              horizontalAlignment: Text.AlignHCenter
-              visible: delLayer.multi
-              wrapMode: Text.Wrap
-              text: "这是重复出现的事件,可以只去掉这一天,或整条删除。"
-              color: Qt.darker(root.contentForeground, 1.5)
-              font.family: root.contentFontFamily
-              font.pixelSize: Style.font.caption
-            }
-
-            Item { width: 1; height: Style.space(6) }   // 文字与按钮区留白
-
+            // ---- 标题区:红底删除图标 + 加粗标题 + 说明 ----
             Column {
               width: parent.width
-              spacing: Style.space(4)
+              spacing: Style.space(8)
 
-              Button {
-                id: deleteAllBtn
+              Rectangle {
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: Style.space(40)
+                height: Style.space(40)
+                radius: Style.space(20)
+                color: Util.alpha(Color.urgent, 0.14)
+
+                Text {
+                  anchors.centerIn: parent
+                  text: "\uDB80\uDDB4"               // md-delete
+                  color: Color.urgent
+                  font.family: root.contentFontFamily
+                  font.pixelSize: Style.font.subtitle + 4
+                }
+              }
+
+              Text {
                 width: parent.width
-                text: delLayer.multi ? "整条删除(含以后所有出现)" : "删除"
-                iconText: "\uDB80\uDDB4"     // md-delete
-                foreground: Color.background
-                background: Qt.darker(Color.urgent, 1.15)
-                accent: Color.background
+                horizontalAlignment: Text.AlignHCenter
+                text: delLayer.message
+                wrapMode: Text.Wrap
+                color: root.contentForeground
+                font.family: root.contentFontFamily
+                font.pixelSize: Style.font.subtitle
+                font.bold: true
+              }
+
+              Text {
+                width: parent.width
+                horizontalAlignment: Text.AlignHCenter
+                visible: delLayer.multi
+                wrapMode: Text.Wrap
+                text: "这是重复出现的事件,可以只去掉这一天,或整条删除。"
+                color: Qt.darker(root.contentForeground, 1.5)
+                font.family: root.contentFontFamily
+                font.pixelSize: Style.font.caption
+              }
+            }
+
+            // ---- 操作区:删除红实底;取消/仅此天为描边 ----
+            Column {
+              width: parent.width
+              spacing: Style.space(8)
+              topPadding: Style.space(4)
+
+              DangerBtn {
+                width: parent.width
+                visible: delLayer.multi
+                text: "整条删除(含以后所有出现)"
+                iconText: "\uDB80\uDDB4"
                 fontFamily: root.contentFontFamily
                 fontSize: Style.font.bodySmall
                 onClicked: dayEvents.confirmDeleteAll()
               }
 
-              Button {
+              Row {
+                id: actRow
                 width: parent.width
-                visible: delLayer.multi
-                text: "仅去掉这一天"
-                foreground: root.contentForeground
-                accent: Color.accent
-                fontFamily: root.contentFontFamily
-                fontSize: Style.font.bodySmall
-                bordered: true
-                onClicked: dayEvents.confirmDeleteOnce()
+                spacing: Style.space(8)
+
+                Button {
+                  width: (actRow.width - Style.space(8)) / 2
+                  text: delLayer.multi ? "仅去掉这一天" : "取消"
+                  foreground: delLayer.multi ? root.contentForeground : Qt.darker(root.contentForeground, 1.5)
+                  accent: Color.accent
+                  fontFamily: root.contentFontFamily
+                  fontSize: Style.font.bodySmall
+                  bordered: true
+                  onClicked: delLayer.multi ? dayEvents.confirmDeleteOnce() : delLayer.close()
+                }
+
+                DangerBtn {
+                  width: (actRow.width - Style.space(8)) / 2
+                  visible: !delLayer.multi
+                  text: "删除"
+                  iconText: "\uDB80\uDDB4"
+                  fontFamily: root.contentFontFamily
+                  fontSize: Style.font.bodySmall
+                  onClicked: dayEvents.confirmDeleteAll()
+                }
+
+                Button {
+                  id: cancelBtn
+                  width: (actRow.width - Style.space(8)) / 2
+                  visible: delLayer.multi
+                  text: "取消"
+                  foreground: Qt.darker(root.contentForeground, 1.5)
+                  fontFamily: root.contentFontFamily
+                  fontSize: Style.font.bodySmall
+                  bordered: true
+                  onClicked: delLayer.close()
+                }
               }
 
-              Button {
+              Text {
                 width: parent.width
-                text: "取消"
-                foreground: Qt.darker(root.contentForeground, 1.5)
-                fontFamily: root.contentFontFamily
-                fontSize: Style.font.bodySmall
-                bordered: true
-                onClicked: delLayer.close()
+                horizontalAlignment: Text.AlignHCenter
+                text: "此操作不可恢复"
+                color: Util.alpha(Qt.darker(root.contentForeground, 2.2), 0.8)
+                font.family: root.contentFontFamily
+                font.pixelSize: Style.font.caption
               }
             }
           }
