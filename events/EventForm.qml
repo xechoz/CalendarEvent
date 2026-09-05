@@ -839,18 +839,77 @@ Item {
           onClicked: root.cancel()
         }
 
-        // 添加/保存:主操作,accent 实底突出
-        Button {
+        // 添加/保存:主操作,accent 实底;悬停/按下透明度 50%
+        PrimaryBtn {
           id: addBtn
           text: root.editing ? (root._detach ? "仅此天保存" : "保存修改") : "添加"
           iconText: "\uDB81\uDC15"   // md-plus
-          background: root.accent
+          accent: root.accent
           foreground: Color.background
           fontFamily: root.fontFamily
           fontSize: Style.font.bodySmall
           onClicked: root.commit()
         }
       }
+    }
+  }
+
+  // 主按钮(添加/保存):accent 实底;悬停/按下只降透明度 50%,不变灰
+  component PrimaryBtn: Item {
+    id: pb
+
+    property string text: ""
+    property string iconText: ""
+    property color accent: Color.accent
+    property color foreground: Color.background
+    property string fontFamily: Style.font.family
+    property int fontSize: Style.font.bodySmall
+
+    signal clicked()
+
+    readonly property bool hot: pbMouse.containsMouse
+
+    implicitWidth: content.implicitWidth + Style.space(24)
+    implicitHeight: Style.spacing.controlHeight
+
+    opacity: pb.hot ? 0.5 : 1
+    Behavior on opacity { NumberAnimation { duration: 90 } }
+
+    Rectangle {
+      anchors.fill: parent
+      radius: Style.cornerRadius
+      color: pb.accent
+    }
+
+    Row {
+      id: content
+      anchors.centerIn: parent
+      spacing: Style.space(6)
+
+      Text {
+        visible: pb.iconText !== ""
+        text: pb.iconText
+        color: pb.foreground
+        font.family: pb.fontFamily
+        font.pixelSize: pb.fontSize
+        anchors.verticalCenter: parent.verticalCenter
+      }
+
+      Text {
+        text: pb.text
+        color: pb.foreground
+        font.family: pb.fontFamily
+        font.pixelSize: pb.fontSize
+        font.bold: true
+      }
+    }
+
+    MouseArea {
+      id: pbMouse
+      anchors.fill: parent
+      hoverEnabled: true
+      cursorShape: Qt.PointingHandCursor
+      onClicked: pb.clicked()
     }
   }
 
