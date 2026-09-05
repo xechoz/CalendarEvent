@@ -291,14 +291,6 @@ Item {
       width: parent.width
       spacing: Style.space(3)
 
-      Text {
-        text: "标题"
-        color: root.dim
-        font.family: root.fontFamily
-        font.pixelSize: Style.font.caption
-        font.bold: true
-      }
-
       TextField {
         id: titleField
         width: parent.width
@@ -306,7 +298,7 @@ Item {
         accent: root.accent
         font.family: root.fontFamily
         font.pixelSize: Style.font.body
-        placeholderText: "给这天记点什么…(必填)"
+        placeholderText: "标题…(必填)"
         text: root._title
         verticalPadding: Style.space(5)
         onTextChanged: {
