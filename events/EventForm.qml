@@ -107,12 +107,6 @@ Item {
     root.fieldError = ""
   }
 
-  function glyphFor(status) {
-    if (status === "done") return "\uDB81\uDDE0"      // 实心圆+钩
-    if (status === "inprogress") return "\uDB84\uDF96" // 半圆
-    return "\uDB82\uDE9E"                             // 1% 进度弧
-  }
-
   function toggleRemind() { root._remind = !root._remind }
 
   function toggleUntil() {
@@ -341,67 +335,6 @@ Item {
         font.family: root.fontFamily
         font.pixelSize: Style.font.caption
         topPadding: Style.space(2)
-      }
-    }
-
-    // ---- 成品预览(所见即所得:随字段实时更新) ----
-    Rectangle {
-      width: parent.width
-      height: Style.space(30)
-      radius: Style.cornerRadius
-      color: Util.alpha(root.foreground, 0.05)
-
-      Row {
-        anchors.left: parent.left
-        anchors.leftMargin: Style.space(8)
-        anchors.right: parent.right
-        anchors.rightMargin: Style.space(8)
-        anchors.verticalCenter: parent.verticalCenter
-        spacing: Style.space(8)
-
-        Text {
-          anchors.verticalCenter: parent.verticalCenter
-          text: root.glyphFor(root._status)
-          color: root._flag === "important" ? root.dotRed : root.dotGreen
-          font.family: root.fontFamily
-          font.pixelSize: Style.font.body
-        }
-
-        Rectangle {
-          anchors.verticalCenter: parent.verticalCenter
-          width: chipPreviewText.implicitWidth + Style.space(10)
-          height: Style.space(18)
-          radius: Math.round(height / 2)
-          color: root._time === "" && root._status !== "done"
-            ? Util.alpha(root.foreground, 0.07)
-            : Util.alpha(root.accent, 0.16)
-
-          Text {
-            id: chipPreviewText
-            anchors.centerIn: parent
-            text: root._time !== "" && EM.normalizeTime(root._time)
-              ? EM.normalizeTime(root._time)
-              : (root._time !== "" ? root._time : "全天")
-            color: root._time === "" && root._status !== "done"
-              ? root.dim
-              : (root._status === "done" ? Util.alpha(root.foreground, 0.3) : root.accent)
-            font.family: root.fontFamily
-            font.pixelSize: Style.font.caption
-            font.bold: root._time !== ""
-          }
-        }
-
-        Text {
-          anchors.verticalCenter: parent.verticalCenter
-          text: root._title !== "" ? root._title : "预览标题(输入标题后显示)"
-          elide: Text.ElideRight
-          color: root._title === ""
-            ? Util.alpha(root.foreground, 0.3)
-            : (root._status === "done" ? Util.alpha(root.foreground, 0.38) : root.foreground)
-          font.family: root.fontFamily
-          font.pixelSize: Style.font.body
-          font.strikeout: root._status === "done" && root._title !== ""
-        }
       }
     }
 
