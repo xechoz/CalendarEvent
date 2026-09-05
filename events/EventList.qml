@@ -76,7 +76,6 @@ Item {
     // ✕ 看起来常驻。
     property bool xHovered: false
     readonly property bool active: mouse.containsMouse || xHovered
-    readonly property bool dbgCM: mouse.containsMouse   // 临时诊断
 
     function startHideTimer() { if (!row.xHovered) hideTimer.restart() }
 
@@ -194,7 +193,6 @@ Item {
 
     PanelActionButton {
       id: deleteBtn
-      objectName: "evDelBtn"
       visible: row.active
       anchors.right: parent.right
       anchors.rightMargin: Style.space(6)
