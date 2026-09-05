@@ -61,7 +61,7 @@ Item {
     width: root.width
     height: root.rowHeight
     radius: Style.cornerRadius
-    color: mouse.containsMouse ? Style.hoverFillFor(root.foreground, root.foreground) : "transparent"
+    color: root.active ? Style.hoverFillFor(root.foreground, root.foreground) : "transparent"
     Behavior on color { ColorAnimation { duration: 80 } }
 
     readonly property var ev: occurrence && occurrence.event ? occurrence.event : null
@@ -71,6 +71,9 @@ Item {
     // 重要/普通 不再用单独小圆点表达,直接体现在状态圆点的颜色上
     readonly property color importanceColor: ev && ev.flag === "important"
       ? root.dotRed : root.dotGreen
+    // 行被“选中/悬停”(含悬停在 ✕ 上)才显示 ✕;二者合并保证按钮不抖动
+    property bool xHovered: false
+    readonly property bool active: mouse.containsMouse || xHovered
 
     MouseArea {
       id: mouse
@@ -146,8 +149,8 @@ Item {
       id: titleText
       anchors.left: chip.right
       anchors.leftMargin: Style.space(8)
-      anchors.right: deleteBtn.left
-      anchors.rightMargin: Style.space(4)
+      anchors.right: root.active ? deleteBtn.left : parent.right
+      anchors.rightMargin: root.active ? Style.space(4) : Style.space(8)
       anchors.verticalCenter: parent.verticalCenter
       text: row.ev ? row.ev.title : ""
       elide: Text.ElideRight
@@ -161,8 +164,8 @@ Item {
       id: tagsRow
       anchors.left: titleText.right
       anchors.leftMargin: Style.space(6)
-      anchors.right: deleteBtn.left
-      anchors.rightMargin: Style.space(4)
+      anchors.right: root.active ? deleteBtn.left : parent.right
+      anchors.rightMargin: root.active ? Style.space(4) : Style.space(8)
       anchors.verticalCenter: parent.verticalCenter
       spacing: Style.space(6)
       clip: true
@@ -179,17 +182,17 @@ Item {
 
     PanelActionButton {
       id: deleteBtn
+      visible: root.active
       anchors.right: parent.right
       anchors.rightMargin: Style.space(6)
       anchors.verticalCenter: parent.verticalCenter
-      opacity: mouse.containsMouse ? 1 : 0.6
-      Behavior on opacity { NumberAnimation { duration: 90 } }
       size: Style.space(30)
       iconText: "\uDB80\uDD56"            // md-close
       tooltipText: "删除(点击行本身可编辑)"
       foreground: root.foreground
       hoverColor: Qt.darker(Color.urgent, 1.2)
       fontFamily: root.fontFamily
+      onHovered: function(h) { row.xHovered = h }
       onClicked: root.deleteRequested(row.occurrence)
     }
   }
