@@ -42,10 +42,13 @@ Item {
   // 重复事件「仅改这一天」:进入编辑时由聚合层带上本次出现的日期
   property string editingOccurrenceKey: ""
   property bool _detach: false
+  readonly property bool detachFirstOccurrence: !!root.editing
+    && root.editingOccurrenceKey !== ""
+    && root.editingOccurrenceKey === String(root.editing.date || "")
   readonly property bool detachAllowed: !!root.editing
     && root.editing.repeat && root.editing.repeat !== "none"
     && root.editingOccurrenceKey !== ""
-    && root.editingOccurrenceKey !== String(root.editing.date || "")
+    && !root.detachFirstOccurrence
   // 在多日基础上改选重复时,被自动忽略的原结束日期(提示用)
   property string _endIgnored: ""
 
@@ -268,10 +271,11 @@ Item {
           accent: root.accent
           fontFamily: root.fontFamily
           fontSize: Style.font.bodySmall
-          enabled: root.editingOccurrenceKey !== String(root.editing.date || "")
-          tooltipText: root.editingOccurrenceKey !== String(root.editing.date || "")
-            ? (root._detach ? "恢复为修改整条重复事件" : "把这次出现复制成单日事件再改,原系列跳过这一天")
-            : "首次出现日不能单独改,请整条修改"
+          enabled: !!root.editing
+            && !root.detachFirstOccurrence
+          tooltipText: root.detachFirstOccurrence
+            ? "首次出现日不能单独改,请整条修改"
+            : (root._detach ? "恢复为修改整条重复事件" : "把这次出现复制成单日事件再改,原系列跳过这一天")
           onClicked: root.toggleDetach()
         }
       }

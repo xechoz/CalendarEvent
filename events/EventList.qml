@@ -183,6 +183,8 @@ Item {
       anchors.right: parent.right
       anchors.rightMargin: Style.space(6)
       anchors.verticalCenter: parent.verticalCenter
+      // 放大命中区(默认 22px 太小难点)
+      size: Style.space(30)
       iconText: "\uDB80\uDD56"            // md-close
       tooltipText: "删除(点击行本身可编辑)"
       foreground: root.foreground

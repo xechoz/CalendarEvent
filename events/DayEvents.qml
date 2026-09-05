@@ -1,5 +1,5 @@
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls as QC
 import qs.Commons
 import qs.Ui
 import "EventsModel.js" as EM
@@ -112,6 +112,22 @@ Item {
     deleteOverlay.message = "删除「" + occurrence.event.title + "」?"
     deleteOverlay.multi = !!occurrence.event.repeat && occurrence.event.repeat !== "none"
     deleteOverlay.visible = true
+    Qt.callLater(root.revealOverlay)
+  }
+
+  // 事件区若处于可滚动容器的上部,浮层会被视口底部裁掉;
+  // 向上找到最近的 Flickable,把可视区滚到底让它完整露出来。
+  function revealOverlay() {
+    var node = root.parent
+    while (node) {
+      if (String(node).indexOf("Flickable") !== -1) {
+        var contentH = Number(node.contentHeight || 0)
+        var h = Number(node.height || 0)
+        node.contentY = Math.max(0, contentH - h)
+        return
+      }
+      node = node.parent
+    }
   }
 
   function confirmDeleteAll() {
@@ -333,6 +349,9 @@ Item {
     BorderSurface {
       id: delCard
       width: Math.min(parent.width - Style.space(16), Style.space(330))
+      // 高度不超过可用区域,内容超高时在卡内滚动,避免被底部裁断
+      height: Math.min(Math.max(delScrollContent.implicitHeight, Style.space(170)) + Style.space(32),
+        Math.max(Style.space(60), parent.height - Style.space(12)))
       anchors.horizontalCenter: parent.horizontalCenter
       anchors.verticalCenter: parent.verticalCenter
       color: Color.background
@@ -340,70 +359,82 @@ Item {
       radius: Style.cornerRadius
       padding: Style.space(16)
 
-      Column {
-        width: parent.width - Style.space(8)
-        anchors.horizontalCenter: parent.horizontalCenter
-        spacing: Style.space(10)
-
-        Text {
-          width: parent.width
-          text: deleteOverlay.message
-          wrapMode: Text.Wrap
-          color: root.foreground
-          font.family: root.fontFamily
-          font.pixelSize: Style.font.body
-        }
-
-        Text {
-          width: parent.width
-          visible: deleteOverlay.multi
-          wrapMode: Text.Wrap
-          text: "这是重复出现的事件,可以只去掉这一天,或整条删除。"
-          color: root.dim
-          font.family: root.fontFamily
-          font.pixelSize: Style.font.caption
-        }
+      Flickable {
+        id: delScroll
+        anchors.fill: parent
+        clip: true
+        contentWidth: width
+        contentHeight: delScrollContent.implicitHeight
+        boundsBehavior: Flickable.StopAtBounds
+        QC.ScrollBar.vertical: QC.ScrollBar { policy: delScrollContent.implicitHeight > delScroll.height
+            ? QC.ScrollBar.AsNeeded : QC.ScrollBar.AlwaysOff }
 
         Column {
+          id: delScrollContent
           width: parent.width
-          spacing: Style.space(4)
+          spacing: Style.space(10)
 
-          Button {
-            id: deleteAllBtn
+          Text {
             width: parent.width
-            text: deleteOverlay.multi ? "整条删除(含以后所有出现)" : "删除"
-            iconText: "\uDB80\uDDB4"     // md-delete
-            foreground: Color.background
-            background: root.urgentColor
-            accent: Color.background
-            fontFamily: root.fontFamily
-            fontSize: Style.font.bodySmall
-            onClicked: root.confirmDeleteAll()
+            text: deleteOverlay.message
+            wrapMode: Text.Wrap
+            color: root.foreground
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.body
           }
 
-          Button {
+          Text {
             width: parent.width
             visible: deleteOverlay.multi
-            text: "仅去掉这一天"
-            foreground: root.foreground
-            accent: root.accent
-            fontFamily: root.fontFamily
-            fontSize: Style.font.bodySmall
-            bordered: true
-            onClicked: root.confirmDeleteOnce()
+            wrapMode: Text.Wrap
+            text: "这是重复出现的事件,可以只去掉这一天,或整条删除。"
+            color: root.dim
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.caption
           }
 
-          Button {
+          Column {
             width: parent.width
-            text: "取消"
-            foreground: root.dim
-            fontFamily: root.fontFamily
-            fontSize: Style.font.bodySmall
-            bordered: true
-            onClicked: { root.pendingDelete = null; deleteOverlay.visible = false }
+            spacing: Style.space(4)
+
+            Button {
+              id: deleteAllBtn
+              width: parent.width
+              text: deleteOverlay.multi ? "整条删除(含以后所有出现)" : "删除"
+              iconText: "\uDB80\uDDB4"     // md-delete
+              foreground: Color.background
+              background: root.urgentColor
+              accent: Color.background
+              fontFamily: root.fontFamily
+              fontSize: Style.font.bodySmall
+              onClicked: root.confirmDeleteAll()
+            }
+
+            Button {
+              width: parent.width
+              visible: deleteOverlay.multi
+              text: "仅去掉这一天"
+              foreground: root.foreground
+              accent: root.accent
+              fontFamily: root.fontFamily
+              fontSize: Style.font.bodySmall
+              bordered: true
+              onClicked: root.confirmDeleteOnce()
+            }
+
+            Button {
+              width: parent.width
+              text: "取消"
+              foreground: root.dim
+              fontFamily: root.fontFamily
+              fontSize: Style.font.bodySmall
+              bordered: true
+              onClicked: { root.pendingDelete = null; deleteOverlay.visible = false }
+            }
           }
         }
       }
     }
   }
 }
+
