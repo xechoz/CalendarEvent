@@ -298,7 +298,7 @@ Item {
         accent: root.accent
         font.family: root.fontFamily
         font.pixelSize: Style.font.body
-        placeholderText: "接下来要做些什么呢…"
+        placeholderText: "要记点什么呢…"
         text: root._title
         verticalPadding: Style.space(5)
         onTextChanged: {
