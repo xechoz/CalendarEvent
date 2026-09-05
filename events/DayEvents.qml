@@ -374,8 +374,11 @@ Item {
           width: parent.width
           spacing: Style.space(10)
 
+          Item { width: 1; height: Style.space(6) }   // 顶部留白
+
           Text {
             width: parent.width
+            horizontalAlignment: Text.AlignHCenter
             text: deleteOverlay.message
             wrapMode: Text.Wrap
             color: root.foreground
@@ -385,6 +388,7 @@ Item {
 
           Text {
             width: parent.width
+            horizontalAlignment: Text.AlignHCenter
             visible: deleteOverlay.multi
             wrapMode: Text.Wrap
             text: "这是重复出现的事件,可以只去掉这一天,或整条删除。"
@@ -392,6 +396,8 @@ Item {
             font.family: root.fontFamily
             font.pixelSize: Style.font.caption
           }
+
+          Item { width: 1; height: Style.space(6) }   // 文字与按钮区留白
 
           Column {
             width: parent.width
