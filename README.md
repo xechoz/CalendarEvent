@@ -1,8 +1,8 @@
-# Xechoz Calendar(xechoz.clock)
+# Calendar Event(xechoz.clock)
 
 Omarchy bar 时钟 + 月历 + **事件日历**(带待办/提醒)插件。
 
-> **Xechoz Calendar** is a date/time bar widget for
+> **Calendar Event** is a date/time bar widget for
 > [Omarchy Quattro](https://github.com/omacom/omarchy/tree/quattro) with a
 > calendar popup, per-day events and desktop reminders. Click any day to add
 > all-day / timed / repeating events, cycle 待办→进行中→已完成 statuses, and
@@ -16,7 +16,7 @@ Omarchy bar 时钟 + 月历 + **事件日历**(带待办/提醒)插件。
 > ```
 
 <p>
-  <img src="preview.png" alt="Xechoz Calendar panel" width="320">
+  <img src="preview.png" alt="Calendar Event panel" width="320">
   <img src="screenshot-detail.png" alt="Day events view" width="320">
 </p>
 

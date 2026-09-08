@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "xechoz.clock",
-  "name": "Xechoz Calendar",
+  "name": "Calendar Event",
   "version": "1.0.0",
   "author": "xechoz",
   "license": "MIT",
@@ -13,7 +13,7 @@
     "barWidget": "BarWidget.qml"
   },
   "barWidget": {
-    "displayName": "Xechoz Calendar",
+    "displayName": "Calendar Event",
     "description": "带事件/待办与提醒的时钟日历(点开面板管理事件)",
     "category": "Time",
     "allowMultiple": false,
