@@ -25,6 +25,24 @@ Omarchy bar 时钟 + 月历 + **事件日历**(带待办/提醒)插件。
 
 > Derived from the built-in `omarchy.clock` plugin of the Omarchy desktop
 > (https://omarchy.org/). See LICENSE for provenance. MIT licensed.
+> Extended with per-day events, todo statuses, reminders, Chinese public
+> holidays, and zh/en localization.
+
+## 衍生说明
+
+本插件**基于 Omarchy 内置 `omarchy.clock` 克隆改造**,不冒认原创:
+`BarWidget.qml`、`Panel.qml`、`Model.js` 及其整体设计源自上游,沿用上游
+MIT 许可;完整溯源声明见 `LICENSE` 的 Derived-work notice。
+
+- **上游原有能力(保留,非本插件贡献)**:时钟显示与右键格式切换、
+  月历网格、时区选择
+- **本插件新增功能**:
+  - 事件日历:每天记录全天 / 定时 / 多日事件,支持 每天·每周·每月·每年
+    重复(可设截止日期、按天跳过某次出现)
+  - 状态三态:待办 → 进行中 → 已完成,列表行首圆点一键切换
+  - 到点桌面提醒:提前 5/10/15/30/60 分钟档位、事件级提前量、重启不重弹
+  - 中国法定节假日标记:放假 / 调休上班日,内置 2026 全年 + 联网获取后续年份
+  - 多语言 zh / en、事件存储与设置持久化、事件区与表单 UI
 
 ## 功能
 
