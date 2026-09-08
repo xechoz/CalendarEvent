@@ -2,4 +2,3 @@ EventStore 1.0 EventStore.qml
 EventList 1.0 EventList.qml
 EventForm 1.0 EventForm.qml
 DayEvents 1.0 DayEvents.qml
-MiniCalendar 1.0 MiniCalendar.qml

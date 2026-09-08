@@ -115,6 +115,14 @@ function normalizeDate(value) {
   return p ? String(value).trim() : null
 }
 
+// 提前提醒分钟数:非负整数;缺省/非法返回 null(由引擎回退默认提前量)
+function normalizeRemindMinutes(value) {
+  if (value === undefined || value === null || value === "") return null
+  var n = Number(value)
+  if (!isFinite(n) || Math.floor(n) !== n) return null
+  return n < 0 ? null : n
+}
+
 // 多日与重复互斥:endDate 一旦大于 date,repeat 强制 none
 function normalizeEvent(raw) {
   if (!raw || typeof raw !== "object") return null
@@ -148,6 +156,7 @@ function normalizeEvent(raw) {
     repeat: repeat,
     repeatUntil: repeatUntil,
     remind: raw.remind !== false,
+    remindMinutes: normalizeRemindMinutes(raw.remindMinutes),
     exceptions: exceptions
   }
 }
@@ -188,6 +197,7 @@ function buildEvent(fields) {
     repeat: f.repeat,
     repeatUntil: f.repeatUntil,
     remind: f.remind,
+    remindMinutes: f.remindMinutes,
     exceptions: f.exceptions
   })
   if (!e) return null
@@ -393,6 +403,7 @@ if (typeof module !== "undefined") {
     normalizeTime: normalizeTime,
     normalizeTitle: normalizeTitle,
     normalizeDate: normalizeDate,
+    normalizeRemindMinutes: normalizeRemindMinutes,
     normalizeEvent: normalizeEvent,
     sanitizeEvents: sanitizeEvents,
     makeId: makeId,
