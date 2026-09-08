@@ -4,6 +4,7 @@
   "name": "Xechoz Calendar",
   "version": "1.0.0",
   "author": "xechoz",
+  "license": "MIT",
   "description": "带事件与提醒的月历(全天/多日/定时/重复事件、待办-进行中-完成状态、桌面提醒)。Date/time bar widget with a calendar popup, events and reminders.",
   "kinds": [
     "bar-widget"

@@ -2,6 +2,24 @@
 
 Omarchy bar 时钟 + 月历 + **事件日历**(带待办/提醒)插件。
 
+> **Xechoz Calendar** is a date/time bar widget for
+> [Omarchy Quattro](https://github.com/omacom/omarchy/tree/quattro) with a
+> calendar popup, per-day events and desktop reminders. Click any day to add
+> all-day / timed / repeating events, cycle 待办→进行中→已完成 statuses, and
+> get notified before they are due. Chinese public holidays (放假/调休) are
+> marked automatically when your system is in a Chinese context.
+>
+> Install from the [Omarchy plugin marketplace](https://plugins.omarchy.org/):
+>
+> ```sh
+> omarchy plugin add https://github.com/xechoz/CalendarEvent.git --enable --yes
+> ```
+
+<p>
+  <img src="preview.png" alt="Xechoz Calendar panel" width="320">
+  <img src="screenshot-detail.png" alt="Day events view" width="320">
+</p>
+
 克隆自 Omarchy 内置 `omarchy.clock`,扩展为可管理事件的日历:每个日期下可记录
 全天/多日/定时/重复事件,附带 待办→进行中→已完成 状态与到点桌面提醒。
 
@@ -53,7 +71,7 @@ Omarchy bar 时钟 + 月历 + **事件日历**(带待办/提醒)插件。
 ## 安装
 
 ```bash
-omarchy plugin add https://github.com/<your-name>/<repo>.git --enable --yes
+omarchy plugin add https://github.com/xechoz/CalendarEvent.git --enable --yes
 ```
 
 - 无 `--yes` 时按提示确认即可;会询问放入 bar 哪个区,建议选 **center**
@@ -78,6 +96,15 @@ omarchy plugin remove xechoz.clock    # 只移除插件本体
 ```
 
 卸载后如需恢复内置时钟:用 `omarchy bar` 或直接在 shell.json 里加回 `omarchy.clock` 条目。
+
+## 依赖
+
+均为 Omarchy 自带或其依赖,无需额外安装:
+
+- `python3`:事件数据的原子读写(`events/events_sync.py`)
+- `curl`:查看 2026 之后年份的节假日数据时联网拉取;断网时内置的 2026
+  全年数据照常显示
+- `omarchy-notification-send`:到点桌面通知(Omarchy 系统件)
 
 ## 数据
 
