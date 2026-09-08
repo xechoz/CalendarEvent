@@ -1,152 +1,177 @@
-# Calendar Event(xechoz.clock)
+# Calendar Event (xechoz.clock)
 
-Omarchy bar 时钟 + 月历 + **事件日历**(带待办/提醒)插件。
+**English** | [中文](README.zh.md)
 
-> **Calendar Event** is a date/time bar widget for
-> [Omarchy Quattro](https://github.com/omacom/omarchy/tree/quattro) with a
-> calendar popup, per-day events and desktop reminders. Click any day to add
-> all-day / timed / repeating events, cycle 待办→进行中→已完成 statuses, and
-> get notified before they are due. Chinese public holidays (放假/调休) are
-> marked automatically when your system is in a Chinese context.
->
-> Install from the [Omarchy plugin marketplace](https://plugins.omarchy.org/):
->
-> ```sh
-> omarchy plugin add https://github.com/xechoz/CalendarEvent.git --enable --yes
-> ```
+A clock, monthly calendar, and **event calendar with to-dos and reminders** bar
+widget for [Omarchy Quattro](https://github.com/omacom/omarchy/tree/quattro).
+
+Install from the [Omarchy plugin marketplace](https://plugins.omarchy.org/):
+
+```sh
+omarchy plugin add https://github.com/xechoz/CalendarEvent.git --enable --yes
+```
 
 <p>
   <img src="preview.png" alt="Calendar Event panel" width="320">
   <img src="screenshot-detail.png" alt="Day events view" width="320">
 </p>
 
-克隆自 Omarchy 内置 `omarchy.clock`,扩展为可管理事件的日历:每个日期下可记录
-全天/多日/定时/重复事件,附带 待办→进行中→已完成 状态与到点桌面提醒。
+## Derived from omarchy.clock
 
-> Derived from the built-in `omarchy.clock` plugin of the Omarchy desktop
-> (https://omarchy.org/). See LICENSE for provenance. MIT licensed.
-> Extended with per-day events, todo statuses, reminders, Chinese public
-> holidays, and zh/en localization.
+This plugin is **cloned and extended from the built-in `omarchy.clock`** plugin
+of the Omarchy desktop — credit is not claimed for the base work.
+`BarWidget.qml`, `Panel.qml`, `Model.js` and the overall design originate from
+upstream and remain under the upstream MIT license; see the Derived-work notice
+in `LICENSE` for the full provenance statement.
 
-## 衍生说明
+- **Kept from upstream (not our contribution)**: clock display with
+  right-click format cycling, the calendar grid, timezone selection.
+- **Features added by this plugin**:
+  - Per-day events: all-day, timed, and multi-day; repeat daily / weekly /
+    monthly / yearly (with optional end date and per-occurrence skipping).
+  - Todo statuses: todo → in progress → done, cycled with one click on the
+    dot in each list row.
+  - Desktop reminders: 5/10/15/30/60-minute lead presets, per-event lead
+    minutes, never re-notified after a restart.
+  - Chinese public holidays: rest days and makeup workdays, 2026 bundled,
+    later years fetched online.
+  - zh/en localization, event storage and settings persistence, reworked
+    event-list and form UI.
 
-本插件**基于 Omarchy 内置 `omarchy.clock` 克隆改造**,不冒认原创:
-`BarWidget.qml`、`Panel.qml`、`Model.js` 及其整体设计源自上游,沿用上游
-MIT 许可;完整溯源声明见 `LICENSE` 的 Derived-work notice。
+## Features
 
-- **上游原有能力(保留,非本插件贡献)**:时钟显示与右键格式切换、
-  月历网格、时区选择
-- **本插件新增功能**:
-  - 事件日历:每天记录全天 / 定时 / 多日事件,支持 每天·每周·每月·每年
-    重复(可设截止日期、按天跳过某次出现)
-  - 状态三态:待办 → 进行中 → 已完成,列表行首圆点一键切换
-  - 到点桌面提醒:提前 5/10/15/30/60 分钟档位、事件级提前量、重启不重弹
-  - 中国法定节假日标记:放假 / 调休上班日,内置 2026 全年 + 联网获取后续年份
-  - 多语言 zh / en、事件存储与设置持久化、事件区与表单 UI
+- **Clock**: left-click opens the calendar, right-click cycles display formats
+  (format/week start are written to shell.json and survive restarts),
+  middle-click opens timezone selection.
+- **Calendar**: fixed 6-row month grid, today highlighted / selected day
+  outlined, event days marked with red/green dots (red = important).
+- **Chinese holidays**: statutory holidays shown with red numbers + a "休"
+  (rest) corner badge, makeup workdays blue + "班" (work); hover shows the
+  holiday name, and the selected day appends it to the header. On by default
+  for zh / CN / UTC+8 contexts; disable with the `holidays` setting.
+- **Events**: click any day to manage it below — title / start–end date
+  (multi-day) / time (empty = all day); repeat daily, weekly, monthly or
+  yearly (with an optional end date and per-day skipping of a single
+  occurrence).
+- **Status**: three states per event — todo (open circle) / in progress (half
+  circle) / done (filled circle); one click on the row-leading dot cycles them.
+- **Reminders**: desktop notification n minutes before the event (n from
+  5/10/15/30/60, default 10). Timed events anchor to the event time, all-day
+  events to 09:00 of that day; multi-day events remind on the first day only;
+  automatic deduplication — no repeated popups.
+- **Shortcuts** (while the panel is open): `A` new event, `Esc` close the
+  form, `Del` delete selected, `t` back to today, `w` toggle week start.
+- **Language**: interface in Chinese or English, following the system language
+  by default; force it with the inline `language` setting (below).
 
-## 功能
+## Language (`language` setting)
 
-- **时钟**:左键弹出日历,右键切换显示格式(格式/周起始写入 shell.json,重启保留),中键打开时区选择
-- **月历**:6 行月网格、今天高亮/选中日描边、有事件的日子显示红/绿圆点(重要=红)
-- **节假日**:标记中国法定节假日 —— 放假日红色数字+"休"、调休上班日蓝色数字+"班",悬停/选中显示节名(默认对中文/中国区/UTC+8 用户开启,可 `holidays` 设置关闭)
-- **事件**:点击任意一天,下方管理当日安排 —— 标题 / 起止日期(多日)/ 时间(留空=全天);支持 每天/每周/每月/每年 重复(可设截止日期、可按天跳过某次出现)
-- **状态**:每个事件三态 待办(空心圆)/ 进行中(半圆)/ 已完成(实心圆,蓝);列表行首圆点一键切换
-- **提醒**:到点前 n 分钟桌面通知(n 可在 5/10/15/30/60 分钟档位间选,默认 10);定时事件以事件时刻为锚,全天事件锚定当天 09:00;多日只在首日;自动去重,不会重复弹
-- **快捷键**:面板内 `A` 新建事件、`Esc` 关闭表单、`Del` 删除选中、`t` 回到今天、`w` 切换周起始
-- **多语言**:界面支持中文 / 英文,默认跟随系统语言;可在 shell.json 内联设置 `language` 强制指定(见下)
+UI and reminder strings are translated through the `i18n/I18n.qml` singleton.
+Resolution rules:
 
-## 语言(language 设置)
+- Unset / `"auto"` / empty: follow the system `Qt.locale()` (zh* → Chinese,
+  anything else → English).
+- `"zh"` / `"zh_CN"`: force Chinese; `"en"` / `"en_US"`: force English.
 
-面板与提醒文案经 `i18n/I18n.qml` 单例翻译,语言按以下规则解析:
-
-- 缺省 / `"auto"` / 空:跟随系统 `Qt.locale()`(zh* → 中文,其余 → 英文)
-- `"zh"` / `"zh_CN"`:强制中文;`"en"` / `"en_US"`:强制英文
-
-在 shell.json 的 xechoz.clock 条目中直接写扁平键即可(修改后重启 shell 生效):
+Write the key flat inside the xechoz.clock entry of `shell.json` (a shell
+restart applies the change):
 
 ```json
 { "id": "xechoz.clock", "language": "en" }
 ```
 
-## 中国节假日(holidays 设置)
+## Chinese holidays (`holidays` setting)
 
-日历格会标记中国法定节假日(国务院安排):放假日在日期数字下方用红色数字 +
-"休" 角标,调休上班日用蓝色数字 + "班" 角标;悬停显示节名,选中日头部追加节名。
+Calendar cells mark Chinese statutory holidays (State Council schedule): rest
+days show red numbers with a "休" badge, makeup workdays blue numbers with a
+"班" badge; hovering shows the holiday name and the selected-day header
+appends it.
 
-- 缺省 / `"auto"`:智能默认 —— 系统语言为中文、系统 locale 为中国区、
-  或时区为 UTC+8(中国全域)时自动开启,否则关闭
-- `"on"` / `"off"`:强制开启 / 关闭
+- Unset / `"auto"`: smart default — on when the system language is Chinese,
+  the system locale is a Chinese region, or the timezone is UTC+8 (all of
+  mainland China); otherwise off.
+- `"on"` / `"off"`: force on / off.
 
 ```json
 { "id": "xechoz.clock", "holidays": "off" }
 ```
 
-数据来源:[NateScarlet/holiday-cn](https://github.com/NateScarlet/holiday-cn)(MIT,
-依据 gov.cn 官方通知)。2026 全年数据内置在 `calendar/Holidays.js`;查看 2026 之后的
-年份时联网拉取同一仓库(每会话每缺失年份一次,失败静默、离线时仅无标记)。
-2027+ 数据一经国务院公布并收录进该仓库,翻到对应月份即自动出现,无需升级插件。
+Data source: [NateScarlet/holiday-cn](https://github.com/NateScarlet/holiday-cn)
+(MIT, based on official gov.cn notices). The full 2026 schedule is bundled in
+`calendar/Holidays.js`; for later years the same repository is fetched on
+demand (once per missing year per session, silent on failure — offline you
+simply get no markers). Once the State Council publishes 2027+ and the
+repository picks it up, navigating to that month shows it automatically — no
+plugin update needed.
 
-## 安装
+## Install
 
-```bash
+```sh
 omarchy plugin add https://github.com/xechoz/CalendarEvent.git --enable --yes
 ```
 
-- 无 `--yes` 时按提示确认即可;会询问放入 bar 哪个区,建议选 **center**
-- 安装后自动出现在 bar 上;可用 `omarchy bar move xechoz.clock --section center` 调整
-- 若想替换原内置时钟:在 `~/.config/omarchy/shell.json` 把 `bar.centerAnchor`
-  改为 `"xechoz.clock"`,并把原 `omarchy.clock` 布局条目移除(文件热重载)
+- Without `--yes` just confirm the prompts; you will be asked which bar
+  section to place it in — **center** is recommended.
+- It appears on the bar right after install; move it with
+  `omarchy bar move xechoz.clock --section center`.
+- To replace the built-in clock: change `bar.centerAnchor` to
+  `"xechoz.clock"` in `~/.config/omarchy/shell.json` and remove the
+  `omarchy.clock` layout entry (hot-reloads).
 
-### 手动安装
+### Manual install
 
-把整个目录放到 `~/.config/omarchy/plugins/xechoz.clock/`,然后:
+Put the whole folder at `~/.config/omarchy/plugins/xechoz.clock/`, then:
 
 ```bash
 omarchy-shell shell rescanPlugins
 omarchy plugin enable xechoz.clock
 ```
 
-## 更新 / 卸载
+## Update / Remove
 
 ```bash
-omarchy plugin update xechoz.clock    # git 管理的插件可增量更新
-omarchy plugin remove xechoz.clock    # 只移除插件本体
+omarchy plugin update xechoz.clock   # git-managed plugins update incrementally
+omarchy plugin remove xechoz.clock   # removes only the plugin itself
 ```
 
-卸载后如需恢复内置时钟:用 `omarchy bar` 或直接在 shell.json 里加回 `omarchy.clock` 条目。
+To restore the built-in clock after removal, use `omarchy bar` or re-add the
+`omarchy.clock` entry to shell.json.
 
-## 依赖
+## Dependencies
 
-均为 Omarchy 自带或其依赖,无需额外安装:
+All ship with Omarchy or its base system — nothing extra to install:
 
-- `python3`:事件数据的原子读写(`events/events_sync.py`)
-- `curl`:查看 2026 之后年份的节假日数据时联网拉取;断网时内置的 2026
-  全年数据照常显示
-- `omarchy-notification-send`:到点桌面通知(Omarchy 系统件)
+- `python3`: atomic JSON read/write for event data (`events/events_sync.py`).
+- `curl`: fetches holiday data for years after 2026; offline, the bundled
+  2026 schedule still displays.
+- `omarchy-notification-send`: desktop notifications (Omarchy system tool).
 
-## 数据
+## Data
 
-- 事件:`~/.local/share/omarchy-calendar/events.json`
-- 提醒去重:`~/.local/share/omarchy-calendar/notified.json`
+- Events: `~/.local/share/omarchy-calendar/events.json`
+- Reminder dedup: `~/.local/share/omarchy-calendar/notified.json`
 
-数据独立于插件本体,卸载/重装不会清空;备份时带上这两个文件即可。
+Data lives outside the plugin, so uninstalling/reinstalling never clears it;
+back these two files up.
 
-## 诊断
+## Diagnostics
 
 ```bash
-omarchy-shell xechoz.clock eventsDebug   # 数据加载/计数/布局自检
-omarchy restart shell                    # 大改后强制重载
+omarchy-shell xechoz.clock eventsDebug   # data load / counts / layout self-check
+omarchy restart shell                    # force a full reload after big changes
 ```
 
-插件代码运行在 `omarchy-shell` 进程内(非沙箱),安装第三方插件前请自行审阅代码。
+Plugin code runs inside the `omarchy-shell` process (unsandboxed) — review any
+third-party plugin code before installing.
 
-## 开发
+## Development
 
-- 逻辑与 UI 分层:`events/EventsModel.js`(纯 JS,可 node 单测)、`events/events_sync.py`
-  (原子 JSON 读写后端),其余为 QML
-- 多语言:`i18n/I18n.qml`(QML 单例字典 + `tr(key, args)`;绑定依赖 `I18n.lang`,
-  运行时切换语言无需重启即可生效)
-- 节假日:`calendar/Holidays.js`(内置 2026 + 解析,纯 JS 可 node 单测)+
-  `calendar/HolidayStore.qml`(联网拉取后续年份)
-- 布局结构:`Panel.qml` 协调层 → `calendar/CalendarContent.qml`(月历)+
-  `events/DayEvents.qml`(当日事件区)+ `reminders/ReminderEngine.qml`(提醒)
+- Logic/UI layering: `events/EventsModel.js` (pure JS, node-testable) +
+  `events/events_sync.py` (atomic JSON backend), everything else QML.
+- i18n: `i18n/I18n.qml` (QML singleton dictionary + `tr(key, args)`; bindings
+  depend on `I18n.lang`, so switching language takes effect without restart).
+- Holidays: `calendar/Holidays.js` (bundled 2026 + parsing, pure JS) +
+  `calendar/HolidayStore.qml` (fetches later years).
+- Layout: `Panel.qml` orchestrator → `calendar/CalendarContent.qml`
+  (calendar) + `events/DayEvents.qml` (day events) +
+  `reminders/ReminderEngine.qml` (reminders).
