@@ -38,6 +38,24 @@ in `LICENSE` for the full provenance statement.
   - zh/en localization, event storage and settings persistence, reworked
     event-list and form UI.
 
+## How it differs from other calendar plugins
+
+Existing calendar plugins fall into two camps: **view-only integrations**
+(Google Calendar / CalDAV / agenda readers — they display external events but
+offer no local creation or reminders) or **lunar-calendar displays** (no
+events at all). Calendar Event is the only integrated, fully local one:
+
+- Bar clock + month grid + per-day event management (all-day / timed /
+  multi-day / repeating, with per-occurrence skip) — no external account.
+- Todo → in-progress → done statuses cycled from the list rows.
+- Desktop reminders with per-event lead minutes (5–60) and deduplication.
+- Chinese statutory holidays — 2026 bundled, later years fetched
+  automatically once published.
+- zh/en interface that follows the system language.
+
+All data stays in `~/.local/share/omarchy-calendar`; the plugin works fully
+offline.
+
 ## Features
 
 - **Clock**: left-click opens the calendar, right-click cycles display formats
