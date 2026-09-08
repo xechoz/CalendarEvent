@@ -3,6 +3,8 @@ import QtQuick.Controls as QC
 import qs.Commons
 import qs.Ui
 import "EventsModel.js" as EM
+import "../calendar/Holidays.js" as Holidays
+import "../i18n"
 
 // 选中日事件区聚合(events/ 模块):头部(日期·计数·添加)+ 事件列表 +
 // 添加/编辑表单 + 删除确认(整条 / 仅此天)+ 存储错误条。
@@ -16,8 +18,11 @@ Item {
   property color accent: Color.accent
   property color dotRed: "#e0744e"
   property color dotGreen: "#7aa2f7"
-  property int weekStart: 1
   property string fontFamily: Style.font.family
+
+  // ---- 中国节假日(编排层注入,仅用于头部节名展示) ----
+  property bool holidaysOn: false
+  property var holidayTable: ({})
 
   readonly property color dim: Qt.darker(foreground, 1.5)
   readonly property color urgentColor: Qt.darker(Color.urgent, 1.15)
@@ -42,15 +47,29 @@ Item {
     if (root.dateKey === "") return ""
     var p = EM.parseKey(root.dateKey)
     if (!p) return ""
-    return (p.month + 1) + "月" + p.day + "日"
+    return I18n.dayHeader(p.year, p.month, p.day)
   }
 
   function weekdayText() {
     var p = EM.parseKey(root.dateKey)
     if (!p) return ""
-    var weekdays = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"]
-    var d = new Date(p.year, p.month, p.day)
-    return weekdays[d.getDay()]
+    return I18n.weekdayName(new Date(p.year, p.month, p.day).getDay())
+  }
+
+  // 选中日的节假日条目(未开启/无数据返回 null)
+  function holidayForSelected() {
+    if (!root.holidaysOn || !root.holidayTable || root.dateKey === "") return null
+    for (var year in root.holidayTable) {
+      var t = root.holidayTable[year]
+      if (t && t[root.dateKey]) return t[root.dateKey]
+    }
+    return null
+  }
+
+  // 头部日期后缀:选中日是节假日时追加 " · 国庆节"
+  function holidaySuffix() {
+    var h = root.holidayForSelected()
+    return h ? " · " + Holidays.labelFor(h, I18n.lang) : ""
   }
 
   // ---- 表单状态 ----
@@ -60,7 +79,6 @@ Item {
   function openAdd() {
     if (root.formOpen) return
     root.formEditing = null
-    form.editingOccurrenceKey = ""
     root.formOpen = true
     Qt.callLater(function() {
       form.beginAdd(root.dateKey)
@@ -71,7 +89,6 @@ Item {
   function openEdit(occurrence) {
     if (!occurrence || !occurrence.event) return
     root.formEditing = occurrence
-    form.editingOccurrenceKey = occurrence.key || occurrence.event.date || ""
     root.formOpen = true
     Qt.callLater(function() {
       form.beginEdit(occurrence.event)
@@ -86,18 +103,6 @@ Item {
 
   function commitForm(fields) {
     if (!root.store) return
-    if (fields.detachFrom && fields.detachFrom !== "" && fields.date) {
-      // 仅改这一天:原系列跳过该出现日 + 该日新建单日事件
-      root.store.skipOccurrence(fields.detachFrom, fields.date)
-      var copy = {}
-      for (var k in fields) copy[k] = fields[k]
-      copy.id = ""
-      copy.repeat = "none"
-      copy.repeatUntil = null
-      root.store.addEvent(copy)
-      root.closeForm()
-      return
-    }
     if (fields.id && fields.id !== "") root.store.updateEvent(fields.id, fields)
     else root.store.addEvent(fields)
     root.closeForm()
@@ -182,9 +187,13 @@ Item {
       height: Style.space(26)
 
       Text {
+        id: dateHeaderText
         anchors.left: parent.left
+        anchors.right: countText.left
+        anchors.rightMargin: Style.space(12)
         anchors.verticalCenter: parent.verticalCenter
-        text: root.headerText() + "  " + root.weekdayText()
+        text: root.headerText() + "  " + root.weekdayText() + root.holidaySuffix()
+        elide: Text.ElideRight
         color: root.foreground
         font.family: root.fontFamily
         font.pixelSize: Style.font.body
@@ -193,22 +202,24 @@ Item {
       }
 
       Text {
-        anchors.left: parent.left
-        anchors.leftMargin: Style.space(90)
+        id: countText
+        anchors.right: addBtn.left
+        anchors.rightMargin: Style.space(12)
         anchors.verticalCenter: parent.verticalCenter
         text: root.occurrences.length > 0
-          ? root.occurrences.length + " 项安排"
-          : "暂无安排"
+          ? I18n.tr("events_count", [root.occurrences.length])
+          : I18n.tr("no_events")
         color: root.dim
         font.family: root.fontFamily
         font.pixelSize: Style.font.caption
       }
 
       PanelActionButton {
+        id: addBtn
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
         iconText: "\uDB81\uDC15"          // md-plus
-        tooltipText: "添加事件(快捷键 A)"
+        tooltipText: I18n.tr("add_tooltip")
         foreground: root.foreground
         hoverColor: root.accent
         fontFamily: root.fontFamily
@@ -227,7 +238,7 @@ Item {
       dotRed: root.dotRed
       dotGreen: root.dotGreen
       fontFamily: root.fontFamily
-      emptyHint: "这天还没有安排 · 点右上角 + 添加"
+      emptyHint: I18n.tr("empty_hint")
       height: root.occurrences.length > 0 ? contentHeight : Style.space(24)
       onEditRequested: function(occ) { root.openEdit(occ) }
       onDeleteRequested: function(occ) { root.requestDelete(occ) }
@@ -251,7 +262,7 @@ Item {
           width: parent.width
 
           Text {
-            text: root.formEditing ? "编辑事件" : "添加事件"
+            text: root.formEditing ? I18n.tr("edit_event") : I18n.tr("add_event")
             color: root.dim
             font.family: root.fontFamily
             font.pixelSize: Style.font.caption
@@ -267,7 +278,6 @@ Item {
             accent: root.accent
             dotRed: root.dotRed
             dotGreen: root.dotGreen
-            weekStart: root.weekStart
             fontFamily: root.fontFamily
             onCancel: root.closeForm()
             onSubmit: function(fields) { root.commitForm(fields) }
@@ -302,7 +312,7 @@ Item {
         anchors.rightMargin: Style.space(2)
         anchors.verticalCenter: parent.verticalCenter
         iconText: "\uDB80\uDD56"
-        tooltipText: "关闭提示"
+        tooltipText: I18n.tr("dismiss_error")
         foreground: root.urgentColor
         fontFamily: root.fontFamily
         onClicked: root.dismissError()

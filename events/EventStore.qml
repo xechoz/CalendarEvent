@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import "EventsModel.js" as EM
+import "../i18n"
 
 // 事件数据源(events/ 模块核心):事件与提醒去重记录的读/写/缓存/广播。
 //
@@ -92,7 +93,7 @@ Item {
       var parsed = null
       try { parsed = JSON.parse(raw || "") } catch (e) { parsed = null }
       if (!parsed || typeof parsed !== "object") {
-        root.lastError = "事件数据读取失败(文件损坏?)"
+        root.lastError = I18n.tr("load_error")
         return
       }
       root.events = EM.sanitizeEvents(parsed)
@@ -109,7 +110,7 @@ Item {
   // 表单字段 → 新增事件;返回新事件或 null
   function addEvent(fields) {
     var event = EM.buildEvent(fields)
-    if (!event) { root.lastError = "事件信息不完整,无法保存"; return null }
+    if (!event) { root.lastError = I18n.tr("save_incomplete"); return null }
     root.events = root.events.concat(event)
     root.revision++
     root._saveEventsNow()
@@ -123,12 +124,12 @@ Item {
     if (!target) return null
     var merged = {}
     for (var k in target) merged[k] = target[k]
-    var keys = ["title", "flag", "status", "date", "endDate", "time", "repeat", "repeatUntil", "remind"]
+    var keys = ["title", "flag", "status", "date", "endDate", "time", "repeat", "repeatUntil", "remind", "remindMinutes"]
     for (var i = 0; i < keys.length; i++) {
       if (fields[keys[i]] !== undefined) merged[keys[i]] = fields[keys[i]]
     }
     var normalized = EM.normalizeEvent(merged)
-    if (!normalized) { root.lastError = "事件信息不完整,无法保存"; return null }
+    if (!normalized) { root.lastError = I18n.tr("save_incomplete"); return null }
     root.events = root.events.map(function(e) { return e.id === id ? normalized : e })
     root.revision++
     root._saveEventsNow()

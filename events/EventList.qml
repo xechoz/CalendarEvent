@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Commons
 import qs.Ui
+import "../i18n"
 
 // 选中日的事件列表(events/ 模块,纯展示)。
 // 数据由宿主编排层展开注入(occurrences = [{key,endKey,event}, ...]),
@@ -16,7 +17,7 @@ Item {
   property string fontFamily: Style.font.family
   property real rowHeight: Style.space(38)
   property real rowGap: Style.space(4)
-  property string emptyHint: "这天还没有安排,点右上角“添加”记一笔"
+  property string emptyHint: I18n.tr("empty_hint")
 
   signal editRequested(var occurrence)
   signal deleteRequested(var occurrence)
@@ -34,9 +35,9 @@ Item {
   }
 
   function statusLabel(status) {
-    if (status === "done") return "已完成"
-    if (status === "inprogress") return "进行中"
-    return "待办"
+    if (status === "done") return I18n.tr("status_done")
+    if (status === "inprogress") return I18n.tr("status_inprogress")
+    return I18n.tr("status_todo")
   }
 
   function nextStatus(status) {
@@ -46,10 +47,10 @@ Item {
   }
 
   function repeatLabel(repeat) {
-    if (repeat === "daily") return "每天"
-    if (repeat === "weekly") return "每周"
-    if (repeat === "monthly") return "每月"
-    if (repeat === "yearly") return "每年"
+    if (repeat === "daily") return I18n.tr("repeat_daily")
+    if (repeat === "weekly") return I18n.tr("repeat_weekly")
+    if (repeat === "monthly") return I18n.tr("repeat_monthly")
+    if (repeat === "yearly") return I18n.tr("repeat_yearly")
     return ""
   }
 
@@ -124,7 +125,7 @@ Item {
       PanelToolTip {
         visible: statusMouse.containsMouse
         text: row.ev
-          ? "状态:" + root.statusLabel(row.ev.status) + "(点击切换)"
+          ? I18n.tr("status_tooltip", [root.statusLabel(row.ev.status)])
           : ""
         fontFamily: root.fontFamily
       }
@@ -146,7 +147,7 @@ Item {
       Text {
         id: chipText
         anchors.centerIn: parent
-        text: row.timed ? row.ev.time : "全天"
+        text: row.timed ? row.ev.time : I18n.tr("all_day")
         color: row.done
           ? Util.alpha(root.foreground, 0.3)
           : (row.timed ? root.accent : root.dim)
@@ -199,7 +200,7 @@ Item {
       anchors.verticalCenter: parent.verticalCenter
       size: Style.space(30)
       iconText: "\uDB80\uDD56"            // md-close
-      tooltipText: "删除(点击行本身可编辑)"
+      tooltipText: I18n.tr("delete_row_tooltip")
       foreground: root.foreground
       hoverColor: Qt.darker(Color.urgent, 1.2)
       fontFamily: root.fontFamily

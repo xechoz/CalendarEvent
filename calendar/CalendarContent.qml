@@ -3,6 +3,8 @@ import Quickshell
 import qs.Commons
 import qs.Ui
 import "../Model.js" as Model
+import "Holidays.js" as Holidays
+import "../i18n"
 
 // 月历内容(calendar/ 模块):hero 今日 + 年进度 + 生卒计量 + 月格(点选/圆点) +
 // 月份导航。纯展示组件:所有可变状态(今天/视图月/周起始/生卒设置/选中日)由
@@ -28,6 +30,14 @@ Item {
   property var dayDots: ({})
   property color dotRed: "#e0744e"
   property color dotGreen: "#7aa2f7"
+
+  // ---- 中国节假日(编排层注入;关时格子不显示任何标记) ----
+  property bool holidaysOn: false
+  // year → { "yyyy-MM-dd": { rest: bool, name } } 合并表
+  property var holidayTable: ({})
+  // 休=红 / 班(调休上班)=蓝;与事件圆点的橙/蓝错开
+  readonly property color holidayRed: "#e5484d"
+  readonly property color holidayBlue: "#7aa2f7"
 
   property color foreground: Color.foreground
   property string fontFamily: Style.font.family
@@ -56,8 +66,7 @@ Item {
   readonly property real lifeDone: Model.lifeProgress(root.age, root.lifeExpectancy)
   readonly property int lifeDonePercent: Model.lifeProgressPercent(root.age, root.lifeExpectancy)
 
-  readonly property var labelLocale: Qt.locale("en_US")
-  readonly property string nextWeekStartLabel: labelLocale.dayName(Model.toggledWeekStart(root.weekStart), Locale.LongFormat)
+  readonly property string nextWeekStartLabel: I18n.weekdayName(Model.toggledWeekStart(root.weekStart))
   readonly property var weekdays: Model.weekdayOrder(root.weekStart)
   readonly property var weeks: Model.monthGrid(root.viewYear, root.viewMonth, root.weekStart, root.todayKey)
 
@@ -71,7 +80,7 @@ Item {
   implicitHeight: body.height
 
   function weekdayLabel(weekday) {
-    return String(root.labelLocale.dayName(weekday, Locale.ShortFormat)).toUpperCase()
+    return String(I18n.dayName(weekday, Locale.ShortFormat)).toUpperCase()
   }
 
   // 某日圆点布尔数组(超出 3 再兜底截一次,防脏数据)
@@ -79,6 +88,16 @@ Item {
     var map = root.dayDots || {}
     var arr = Array.isArray(map[key]) ? map[key] : []
     return arr.length > 3 ? arr.slice(0, 3) : arr
+  }
+
+  // 某日节假日条目(未开启/无数据返回 null)
+  function holidayFor(key) {
+    if (!root.holidaysOn || !root.holidayTable || key === "") return null
+    for (var year in root.holidayTable) {
+      var t = root.holidayTable[year]
+      if (t && t[key]) return t[key]
+    }
+    return null
   }
 
   // 编排层把 editingLife 置 true 后调用本函数聚焦编辑字段
@@ -129,7 +148,7 @@ Item {
           id: heroDate
           textFormat: Text.PlainText
           anchors.verticalCenter: parent.verticalCenter
-          text: Qt.formatDate(root.today, "MMMM d")
+          text: I18n.formatDate(root.today, "MMMM d")
           color: heroMouse.containsMouse
             ? Style.hoverStateColor(root.foreground, Color.accent)
             : root.foreground
@@ -152,7 +171,7 @@ Item {
 
         PanelToolTip {
           visible: heroMouse.containsMouse
-          text: "Back to today"
+          text: I18n.tr("back_to_today")
           fontFamily: root.fontFamily
         }
       }
@@ -183,7 +202,7 @@ Item {
 
           Text {
             anchors.verticalCenter: parent.verticalCenter
-            text: "BORN"
+            text: I18n.tr("born")
             color: Qt.darker(root.foreground, 1.5)
             font.family: root.fontFamily
             font.pixelSize: Style.font.bodySmall
@@ -194,7 +213,7 @@ Item {
             id: bornField
             width: Style.space(70)
             anchors.verticalCenter: parent.verticalCenter
-            placeholderText: "year"
+            placeholderText: I18n.tr("year")
             foreground: root.foreground
             font.family: root.fontFamily
             inputMethodHints: Qt.ImhDigitsOnly
@@ -206,7 +225,7 @@ Item {
           Text {
             anchors.verticalCenter: parent.verticalCenter
             leftPadding: Style.space(6)
-            text: "LIVE TO"
+            text: I18n.tr("live_to")
             color: Qt.darker(root.foreground, 1.5)
             font.family: root.fontFamily
             font.pixelSize: Style.font.bodySmall
@@ -292,7 +311,7 @@ Item {
           id: lifeLabel
           anchors.left: parent.left
           anchors.verticalCenter: parent.verticalCenter
-          text: "LIFE"
+          text: I18n.tr("life")
           color: Qt.darker(root.foreground, 1.5)
           font.family: root.fontFamily
           font.pixelSize: Style.font.bodySmall
@@ -401,7 +420,7 @@ Item {
 
             PanelToolTip {
               visible: weekStartMouse.containsMouse
-              text: "Start weeks on " + root.nextWeekStartLabel
+              text: I18n.tr("start_weeks_on", [root.nextWeekStartLabel])
               fontFamily: root.fontFamily
             }
           }
@@ -469,6 +488,9 @@ Item {
                 dots: root.dotsFor(modelData.key)
                 dotRed: root.dotRed
                 dotGreen: root.dotGreen
+                holiday: root.holidayFor(modelData.key)
+                holidayRed: root.holidayRed
+                holidayBlue: root.holidayBlue
                 onClicked: function(key, inMonth) { root.dayClick(key, inMonth) }
               }
             }
@@ -505,7 +527,7 @@ Item {
           anchors.verticalCenter: parent.verticalCenter
           width: Style.space(130)
           horizontalAlignment: Text.AlignHCenter
-          text: Qt.formatDate(root.viewDate, "MMMM yyyy").toUpperCase()
+          text: I18n.formatDate(root.viewDate, "MMMM yyyy").toUpperCase()
           color: Qt.darker(root.foreground, 1.4)
           font.family: root.fontFamily
           font.pixelSize: Style.font.body
@@ -517,7 +539,7 @@ Item {
           anchors.leftMargin: -Style.space(8)
           anchors.verticalCenter: parent.verticalCenter
           iconText: "󰅁"
-          tooltipText: "Previous month"
+          tooltipText: I18n.tr("prev_month")
           foreground: root.foreground
           fontFamily: root.fontFamily
           onClicked: root.monthStep(-1)
@@ -528,7 +550,7 @@ Item {
           anchors.rightMargin: -Style.space(8)
           anchors.verticalCenter: parent.verticalCenter
           iconText: "󰅂"
-          tooltipText: "Next month"
+          tooltipText: I18n.tr("next_month")
           foreground: root.foreground
           fontFamily: root.fontFamily
           onClicked: root.monthStep(1)
@@ -571,12 +593,17 @@ Item {
     property var dots: []
     property color dotRed: "#e0744e"
     property color dotGreen: "#7aa2f7"
+    // 该日节假日条目 {rest,name} 或 null
+    property var holiday: null
+    property color holidayRed: "#e5484d"
+    property color holidayBlue: "#7aa2f7"
 
     signal clicked(string key, bool inMonth)
 
     readonly property bool isToday: cellData ? cellData.today === true : false
     readonly property bool hovered: cellMouse.containsMouse
     readonly property int dotCount: cell.dots && Array.isArray(cell.dots) ? cell.dots.length : 0
+    readonly property bool holidayVisible: cell.holiday !== null && cell.holiday !== undefined
 
     width: cell.cellWidth
     height: cell.cellHeight
@@ -613,12 +640,41 @@ Item {
       anchors.verticalCenter: parent.verticalCenter
       anchors.verticalCenterOffset: cell.dotCount > 0 ? -Style.space(4) : 0
       text: cellData.day
-      color: !cellData.inMonth
-        ? Qt.darker(cell.fg, 2.2)
-        : (cellData.weekend ? Qt.darker(cell.fg, 1.45) : cell.fg)
+      color: cell.holidayVisible
+        ? (cell.holiday.rest ? cell.holidayRed : cell.holidayBlue)
+        : (!cellData.inMonth
+          ? Qt.darker(cell.fg, 2.2)
+          : (cellData.weekend ? Qt.darker(cell.fg, 1.45) : cell.fg))
       font.family: cell.fam
       font.pixelSize: Style.font.body
       font.bold: cell.isToday || cell.selected
+    }
+
+    // 节假日角标(休/班,固定汉字记号;比日期数字小一圈,外月格子半透明)
+    Text {
+      visible: cell.holidayVisible
+      anchors.right: parent.right
+      anchors.rightMargin: Style.space(3)
+      anchors.top: parent.top
+      anchors.topMargin: Style.space(1)
+      text: cell.holidayVisible ? (cell.holiday.rest ? "休" : "班") : ""
+      color: cell.holidayVisible
+        ? (cell.holiday.rest ? cell.holidayRed : cell.holidayBlue)
+        : "transparent"
+      opacity: cellData.inMonth ? 0.9 : 0.45
+      font.family: cell.fam
+      // 固定小字号:约日期数字(body)的 2/3,不随 caption 缩放喧宾夺主
+      font.pixelSize: Math.round(Style.font.body * 0.66)
+      font.bold: false
+    }
+
+    PanelToolTip {
+      visible: cell.holidayVisible && cell.hovered
+      text: cell.holidayVisible
+        ? Holidays.labelFor(cell.holiday, I18n.lang) + " · "
+          + (cell.holiday.rest ? I18n.tr("holiday_rest") : I18n.tr("holiday_work"))
+        : ""
+      fontFamily: cell.fam
     }
 
     Row {

@@ -8,6 +8,7 @@ import "events/EventsModel.js" as EM
 import "calendar"
 import "events"
 import "reminders"
+import "i18n"
 
 // xechoz.clock 协调层(瘦身版)。
 //
@@ -29,6 +30,25 @@ Panel {
   property var anchorItem: null
   property var hostWidget: null
   readonly property var barIdentity: hostWidget || root
+
+  // 语言:内联设置 language(""/auto = 跟随系统;zh/en 强制);注入 i18n 单例后
+  // 所有 tr()/日期格式化的绑定会在设置变更时自动重算。
+  function applyLanguage() {
+    I18n.language = String(root.setting("language", "") || "")
+  }
+
+  // 中国节假日:内联设置 holidays("auto" = 智能默认[中文/中国区/UTC+8],
+  // "on"/"off" 强制)。开启时把 HolidayStore 合并表注入日历并补拉缺失年份。
+  property bool holidaysOn: false
+  property var holidayTable: ({})
+
+  function applyHolidaysConfig() {
+    var mode = String(root.setting("holidays", "auto") || "auto").trim().toLowerCase()
+    root.holidaysOn = mode === "on" ? true
+      : (mode === "off" ? false : I18n.isChinaContext())
+    root.holidayTable = holidayStore.table
+    if (root.holidaysOn) holidayStore.ensureYear(root.viewYear)
+  }
 
   // ---- Today. SystemClock 跨午夜保持诚实,无需重开面板即可滚动高亮。
   property date today: new Date()
@@ -64,6 +84,9 @@ Panel {
       + " err=" + JSON.stringify(store.lastError)
       + " notified=" + store.notifiedLoaded + " notifiedKeys=" + store.notifiedKeys.length
       + " sel=" + root.selectedKey + " today=" + root.todayKey
+      + " lang=" + I18n.lang + " locale=" + I18n.localeName
+      + " hol=" + root.holidaysOn
+      + " holY=" + (root.holidayTable ? Object.keys(root.holidayTable).join(",") : "")
       + " cc=" + Math.round(calendarContent.width) + "x" + Math.round(calendarContent.height)
       + " deH=" + Math.round(dayEvents.implicitHeight)
       + " colI=" + Math.round(contentColumn.implicitHeight)
@@ -182,6 +205,10 @@ Panel {
     refresh()
     themeColorsView.reload()
     if (root.selectedKey === "") root.selectedKey = root.todayKey
+    if (root.holidaysOn) {
+      holidayStore.reset()
+      holidayStore.ensureYear(root.viewYear)
+    }
     root.controller.show()
     Qt.callLater(function() {
       if (root.opened) setCenterHoverRevealSuppressed(true)
@@ -273,6 +300,10 @@ Panel {
     id: store
   }
 
+  HolidayStore {
+    id: holidayStore
+  }
+
   ReminderEngine {
     id: reminder
     store: store
@@ -295,17 +326,29 @@ Panel {
     function onEventsChanged() { root.updateDayCounts() }
   }
 
-  onViewYearChanged: root.updateDayCounts()
+  Connections {
+    target: holidayStore
+    function onTableChanged() { root.holidayTable = holidayStore.table }
+  }
+
+  onViewYearChanged: {
+    root.updateDayCounts()
+    if (root.holidaysOn) holidayStore.ensureYear(root.viewYear)
+  }
   onViewMonthChanged: root.updateDayCounts()
   onWeekStartChanged: root.updateDayCounts()
 
   onSettingsChanged: {
     root.applyEventsConfig()
+    root.applyLanguage()
+    root.applyHolidaysConfig()
     // 生卒/周起始回写会改 settings;数值型只读属性自动跟随
   }
 
   Component.onCompleted: {
+    root.applyLanguage()
     root.applyEventsConfig()
+    root.applyHolidaysConfig()
     Qt.callLater(function() {
       if (store && store.loaded) root.updateDayCounts()
     })
@@ -455,6 +498,8 @@ component DangerBtn: Item {
             dayDots: root.dayDots
             dotRed: root.dotRed
             dotGreen: root.dotGreen
+            holidaysOn: root.holidaysOn
+            holidayTable: root.holidayTable
             foreground: root.contentForeground
             fontFamily: root.contentFontFamily
 
@@ -484,7 +529,8 @@ component DangerBtn: Item {
             dateKey: root.selectedKey
             dotRed: root.dotRed
             dotGreen: root.dotGreen
-            weekStart: root.weekStart
+            holidaysOn: root.holidaysOn
+            holidayTable: root.holidayTable
             foreground: root.contentForeground
             accent: Color.accent
             fontFamily: root.contentFontFamily
@@ -509,7 +555,7 @@ component DangerBtn: Item {
         ? (!!pending.event.repeat && pending.event.repeat !== "none")
         : false
       readonly property string message: pending
-        ? "删除「" + pending.event.title + "」?" : ""
+        ? I18n.tr("delete_title", [pending.event.title]) : ""
 
       function close(): void {
         if (dayEvents) dayEvents.pendingDelete = null
@@ -572,7 +618,7 @@ component DangerBtn: Item {
           DangerBtn {
             width: parent.width
             visible: delLayer.multi
-            text: "整条删除(含以后所有出现)"
+            text: I18n.tr("delete_all")
             iconText: "\uDB80\uDDB4"
             fontFamily: root.contentFontFamily
             fontSize: Style.font.bodySmall
@@ -586,7 +632,7 @@ component DangerBtn: Item {
 
             Button {
               width: (actRow.width - Style.space(16)) / 2
-              text: delLayer.multi ? "仅去掉这一天" : "取消"
+              text: delLayer.multi ? I18n.tr("delete_this_only") : I18n.tr("cancel")
               foreground: delLayer.multi ? root.contentForeground : Qt.darker(root.contentForeground, 1.5)
               accent: Color.accent
               fontFamily: root.contentFontFamily
@@ -598,7 +644,7 @@ component DangerBtn: Item {
             DangerBtn {
               width: (actRow.width - Style.space(16)) / 2
               visible: !delLayer.multi
-              text: "删除"
+              text: I18n.tr("delete")
               iconText: "\uDB80\uDDB4"
               fontFamily: root.contentFontFamily
               fontSize: Style.font.bodySmall
@@ -609,7 +655,7 @@ component DangerBtn: Item {
               id: cancelBtn
               width: (actRow.width - Style.space(16)) / 2
               visible: delLayer.multi
-              text: "取消"
+              text: I18n.tr("cancel")
               foreground: Qt.darker(root.contentForeground, 1.5)
               fontFamily: root.contentFontFamily
               fontSize: Style.font.bodySmall
