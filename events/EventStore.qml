@@ -187,7 +187,9 @@ Item {
     return list ? list.length : 0
   }
 
-  // 提醒引擎:当天需提醒的出现;全天无时间的事件只在首日提醒
+  // 提醒引擎:当天需提醒的出现;全天无时间的事件只在首日提醒。
+  // 已完成事件不再提醒(表单“已完成自动关提醒”之外,行首圆点直接切到
+  // 完成也只改状态,这里统一兜底,保证任何入口完成的事件都静默)。
   function remindersDueToday(dateKey) {
     var out = []
     var list = EM.indexByDate(root.events, dateKey, dateKey)[dateKey] || []
@@ -195,6 +197,7 @@ Item {
       var occ = list[i]
       var e = occ.event
       if (!e || !e.remind) continue
+      if (e.status === "done") continue
       if (!e.time && occ.key !== e.date) continue
       out.push(occ)
     }

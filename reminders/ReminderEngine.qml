@@ -39,17 +39,23 @@ Item {
     target: root.store
     function onEventsChanged() { root.arm() }
     function onLoadedChanged() { root.arm() }
+    function onNotifiedLoadedChanged() {
+      if (root.store && root.store.notifiedLoaded) root.scan()
+    }
   }
 
   function arm() {
     if (!root.store || !root.store.loaded) { scanTimer.stop(); return }
     if (!root.store.notifiedLoaded) root.store.refreshNotified()
     scanTimer.start()
-    root.scan()
+    if (root.store.notifiedLoaded) root.scan()
   }
 
   function scan() {
     if (!root.store || !root.store.loaded) return
+    // 去重键未加载完先不弹:等 onNotifiedLoadedChanged/下轮定时再扫,
+    // 避免重启落在提醒窗口内时用空键表重复通知
+    if (!root.store.notifiedLoaded) return
     var now = root.nowOverride ? new Date(root.nowOverride) : new Date()
     var dateKey = EM.todayKey(now)
     var nowMin = now.getHours() * 60 + now.getMinutes()
@@ -75,6 +81,10 @@ Item {
     }
   }
 
+  // 未弹的桌面通知排进 _queue,进程空闲时逐个发出(同批多个到期事件
+  // 不丢弹:Process 已运行时的 running=true 是 no-op,不能直接覆盖命令)
+  property var _queue: []
+
   function notify(event, at, dateKey) {
     var parts = []
     if (event.time) parts.push(I18n.tr("notify_time", [at]))
@@ -83,12 +93,22 @@ Item {
       parts.push(I18n.tr("notify_day_n", [EM.diffDays(event.date, dateKey) + 1]))
     var body = parts.join(" · ")
     if (root.notifyHook) { root.notifyHook(event, at, dateKey); return }
-    notifyProc.command = ["omarchy-notification-send", "-g", "󰃭", event.title, body]
+    var args = ["omarchy-notification-send", "-g", "󰃭", event.title, body]
+    if (notifyProc.running) { root._queue.push(args); return }
+    notifyProc.command = args
     notifyProc.running = true
   }
 
   Process {
     id: notifyProc
     running: false
+
+    onRunningChanged: {
+      if (!notifyProc.running && root._queue.length > 0) {
+        var next = root._queue.shift()
+        notifyProc.command = next
+        notifyProc.running = true
+      }
+    }
   }
 }

@@ -615,12 +615,12 @@ Item {
       color: cell.hovered
         ? Style.hoverFillFor(cell.fg, cell.accent)
         : (cell.selected ? Util.alpha(cell.accent, 0.10) : "transparent")
-      border.width: cell.isToday
+      border.width: (cell.isToday || cell.selected)
         ? Style.spacing.hairline * 2
-        : (cell.selected ? Style.spacing.hairline * 2 : 0)
-      border.color: cell.isToday
-        ? Style.normalBorderFor(cell.fg, cell.accent)
-        : (cell.selected ? cell.accent : "transparent")
+        : 0
+      border.color: (cell.isToday || cell.selected)
+        ? cell.accent
+        : "transparent"
 
       Behavior on color { ColorAnimation { duration: 80 } }
     }
