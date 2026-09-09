@@ -233,9 +233,17 @@ Panel {
     return false
   }
 
+  // 第三方插件拿到的是 PluginBarApi 门面,centerHoverRevealSuppressed 只读,
+  // 直写会抛 TypeError 并中断 close()(面板因此永远关不掉);一律走方法,
+  // 旧版 Bar 兜底直写,且此调用只是美观用途,绝不允许抛异常。
   function setCenterHoverRevealSuppressed(value) {
-    if (root.bar && "centerHoverRevealSuppressed" in root.bar)
-      root.bar.centerHoverRevealSuppressed = value
+    if (!root.bar) return
+    try {
+      if (typeof root.bar.setCenterHoverRevealSuppressed === "function")
+        root.bar.setCenterHoverRevealSuppressed(value)
+      else if ("centerHoverRevealSuppressed" in root.bar)
+        root.bar.centerHoverRevealSuppressed = value
+    } catch (e) {}
   }
 
   // 本地先生效再写 shell.json(由 bar 回写同值);克隆后经 entryId() 命中真实条目
